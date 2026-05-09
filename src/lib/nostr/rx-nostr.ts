@@ -20,8 +20,7 @@ import {
 	subscriptionStartTime
 } from '$lib/stores/palette';
 import { loginUser } from '$lib/stores/user';
-import { eventToAtag } from './utils';
-import { isReplaceableEventSpecifier } from '$lib/types';
+import { eventToAtag, isReplaceableEventSpecifier } from './utils';
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
 rxNostr.setDefaultRelays(initRelays);

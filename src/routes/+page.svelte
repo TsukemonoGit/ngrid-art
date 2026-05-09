@@ -1,5 +1,5 @@
 <script>
-	import Palette from '$lib/components/Palette.svelte';
+	import Palette from '$lib/components/features/Palette.svelte';
 </script>
 
 <h1>Welcome to SvelteKit</h1>

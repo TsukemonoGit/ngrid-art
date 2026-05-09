@@ -8,9 +8,8 @@ import {
 } from 'rx-nostr';
 import { verifier } from '@rx-nostr/crypto';
 import { initRelays } from '$lib/constracts/relays';
-import type { Filter } from 'nostr-typedef';
-import { nip19 } from 'nostr-tools';
-import type { DecodedResult } from 'nostr-tools/nip19';
+import type { EventParameters, Filter } from 'nostr-typedef';
+
 import { Subject } from 'rxjs';
 import { kind10002 } from '$lib/stores/relays';
 import {
@@ -20,7 +19,7 @@ import {
 	subscriptionStartTime
 } from '$lib/stores/palette';
 import { loginUser } from '$lib/stores/user';
-import { eventToAtag, isReplaceableEventSpecifier } from './utils';
+import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from './utils';
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
 rxNostr.setDefaultRelays(initRelays);
@@ -80,38 +79,23 @@ export function setForwardFilters(filters: Filter[]) {
 	freq.emit(filters);
 }
 
-/**
- * kind:10002 を 1 件取得して、デフォルトリレー設定へ反映します。
- * `npub` / `nprofile` は内部で pubhex に変換します。
- * イベントが見つからない場合でも購読完了時に正常終了します。
- *
- * @param pubkey npub / nprofile / pubhex
- * @returns 処理完了時に resolve される Promise
- */
-export async function setDefaultRelaysfrom10002(pubkey: string): Promise<void> {
-	let pubhex = pubkey;
-	if (pubkey.startsWith('npub')) {
-		try {
-			const decoded: DecodedResult = nip19.decode(pubkey);
-			pubhex = decoded.data as string;
-		} catch {
-			throw Error('Failed to Decode');
-		}
-	} else if (pubkey.startsWith('nprofile')) {
-		try {
-			const decoded: DecodedResult = nip19.decode(pubkey);
-			pubhex = (decoded.data as nip19.ProfilePointer).pubkey;
-		} catch {
-			throw Error('Failed to Decode');
-		}
-	}
+export async function publishEvent(event: EventParameters): Promise<void> {
+	await rxNostr.cast(event);
+}
+
+async function fetchLatestSingleEvent(
+	pubkey: string,
+	kind: number,
+	onNext: (packet: EventPacket) => void
+): Promise<void> {
+	const pubhex = toPubhex(pubkey);
 
 	return new Promise((resolve, reject) => {
 		const flushes$ = new Subject<void>();
 		let received = false;
 
 		const filter: Filter = {
-			kinds: [10002],
+			kinds: [kind],
 			authors: [pubhex],
 			limit: 1,
 			until: subscriptionStartTime.value
@@ -124,12 +108,10 @@ export async function setDefaultRelaysfrom10002(pubkey: string): Promise<void> {
 			.subscribe({
 				next: (packet) => {
 					received = true;
-					kind10002.value = packet.event;
-					rxNostr.setDefaultRelays(packet.event.tags);
+					onNext(packet);
 					sub.unsubscribe();
-					// イベントID の Set をフラッシュする:
 					flushes$.next();
-					resolve(); // ← 処理完了を通知
+					resolve();
 				},
 				error: reject,
 				complete: () => {
@@ -144,5 +126,23 @@ export async function setDefaultRelaysfrom10002(pubkey: string): Promise<void> {
 	});
 }
 
-//10030と未来のすべての30030を購読。10030にいれている30030の更新を受信した場合は、パレットも更新
-//もしくは、新しいでーたを受信しました。更新しますか。のうぃんどうを出してから更新するか。
+/**
+ * kind:10002 を 1 件取得して、デフォルトリレー設定へ反映します。
+ * `npub` / `nprofile` は内部で pubhex に変換します。
+ * イベントが見つからない場合でも購読完了時に正常終了します。
+ *
+ * @param pubkey npub / nprofile / pubhex
+ * @returns 処理完了時に resolve される Promise
+ */
+export async function setDefaultRelaysfrom10002(pubkey: string): Promise<void> {
+	return fetchLatestSingleEvent(pubkey, 10002, (packet) => {
+		kind10002.value = packet.event;
+		rxNostr.setDefaultRelays(packet.event.tags);
+	});
+}
+
+export async function fetchLatestKind10030(pubkey: string): Promise<void> {
+	return fetchLatestSingleEvent(pubkey, 10030, (packet) => {
+		kind10030.value = packet.event;
+	});
+}

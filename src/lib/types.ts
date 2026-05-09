@@ -14,3 +14,30 @@ export interface PaletteEmoji {
 }
 
 export type PaletteEmojiTable = Partial<Record<ReplaceableEventSpecifier, PaletteEmoji>>;
+
+// GRID-01, GRID-02, GRID-03 の型定義
+// カスタム絵文字タグ
+// 4要素目はノラ絵文字（10030直接登録）の場合は省略
+// ["emoji", resolvedShortcode, url, "30030:pubhex:identifier"]
+export type EmojiTag = ['emoji', string, string, string?];
+
+//grid
+// グリッド全体
+export type Grid = Cell[][];
+
+// グリッドのセル。null = 空セル
+export type Cell = EmojiTag | null;
+
+// null絵文字の設定
+export interface NullEmojiConfig {
+	type: 'custom' | 'fullwidth_space';
+	emoji?: PaletteEmoji; // type === "custom" の場合
+}
+
+// スクロールスパイ型タブUI用のパレットセクション
+export interface PaletteSection {
+	// セクションの見出し（その絵文字セットのidentifier）
+	label: string;
+	// このセクションに所属する絵文字リスト
+	emojis: PaletteEmoji[];
+}

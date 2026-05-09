@@ -48,37 +48,50 @@ export function createGlobalState<T>(
 ): GlobalState<T | null>;
 export function createGlobalState<T>(initialValue: T | null = null, storageKey?: string) {
 	let _value = $state<T | null>(initialValue);
+	let hydrated = false;
 
-	// Initialize from localStorage if available
-	if (storageKey && typeof window !== 'undefined') {
+	function hydrateFromStorage() {
+		if (hydrated || !storageKey || typeof window === 'undefined') {
+			return;
+		}
+
 		try {
 			const stored = localStorage.getItem(storageKey);
-			if (stored) {
+			if (stored !== null) {
 				_value = JSON.parse(stored) as T;
 			}
 		} catch (e) {
 			console.warn(`Failed to restore ${storageKey} from localStorage:`, e);
+		} finally {
+			hydrated = true;
+		}
+	}
+
+	function persistToStorage(v: T | null) {
+		if (!storageKey || typeof window === 'undefined') {
+			return;
+		}
+
+		try {
+			if (v === null) {
+				localStorage.removeItem(storageKey);
+			} else {
+				localStorage.setItem(storageKey, JSON.stringify(v));
+			}
+		} catch (e) {
+			console.warn(`Failed to save ${storageKey} to localStorage:`, e);
 		}
 	}
 
 	return {
 		get value() {
+			hydrateFromStorage();
 			return _value;
 		},
 		set value(v: T | null) {
+			hydrateFromStorage();
 			_value = v;
-			// Auto-save to localStorage when value changes
-			if (storageKey && typeof window !== 'undefined') {
-				try {
-					if (v === null) {
-						localStorage.removeItem(storageKey);
-					} else {
-						localStorage.setItem(storageKey, JSON.stringify(v));
-					}
-				} catch (e) {
-					console.warn(`Failed to save ${storageKey} to localStorage:`, e);
-				}
-			}
+			persistToStorage(v);
 		}
 	} as GlobalState<T | null>;
 }

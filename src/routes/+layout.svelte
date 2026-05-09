@@ -9,7 +9,7 @@
 		setDefaultRelaysfrom10002,
 		setForwardFilters
 	} from '$lib/nostr/rx-nostr';
-	import { kind10030, subscriptionStartTime } from '$lib/stores/palette';
+	import { kind10030, kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
 	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
 
 	let { children } = $props();
@@ -71,8 +71,18 @@
 		if (!k) return;
 
 		untrack(() => {
-			syncPaletteFromKind10030(k);
+			syncPaletteFromKind10030(k, { backfillMissing: true });
 		});
+	});
+
+	$effect(() => {
+		const k = kind10030.value;
+		if (!k) return;
+
+		// kind30030Stock を依存に含めるために参照する
+		const stock = kind30030Stock.value;
+		if (!stock) return;
+		syncPaletteFromKind10030(k, { backfillMissing: false });
 	});
 </script>
 

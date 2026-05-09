@@ -4,6 +4,10 @@ import { kind30030Stock, palette } from '$lib/stores/palette';
 import type { PaletteEmoji, PaletteSection } from '$lib/types';
 import type { Event as NostrEvent, Filter, ReplaceableEventSpecifier } from 'nostr-typedef';
 
+type SyncPaletteOptions = {
+	backfillMissing?: boolean;
+};
+
 function normalizeShortcode(value: string): string {
 	const normalized = value
 		.toLowerCase()
@@ -66,7 +70,12 @@ function resolveShortcodeCollisions(sections: PaletteSection[]): PaletteSection[
 	}));
 }
 
-export async function syncPaletteFromKind10030(k: NostrEvent): Promise<void> {
+export async function syncPaletteFromKind10030(
+	k: NostrEvent,
+	options: SyncPaletteOptions = {}
+): Promise<void> {
+	const backfillMissing = options.backfillMissing ?? true;
+
 	// 10030のaタグから30030のatag一覧を取得
 	const aTags = (k.tags as string[][])
 		.filter((tag) => tag[0] === 'a' && isReplaceableEventSpecifier(tag[1]))
@@ -74,7 +83,7 @@ export async function syncPaletteFromKind10030(k: NostrEvent): Promise<void> {
 
 	// stockにないatagだけ絞り込む
 	const missing = aTags.filter((atag) => !kind30030Stock.value.has(atag));
-	if (missing.length > 0) {
+	if (backfillMissing && missing.length > 0) {
 		// atagをフィルターに変換して不足分だけ取得
 		const filters: Filter[] = [];
 		for (const value of missing) {

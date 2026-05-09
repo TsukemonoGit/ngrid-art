@@ -11,15 +11,11 @@ import { initRelays } from '$lib/constracts/relays';
 import type { EventParameters, Filter } from 'nostr-typedef';
 
 import { Subject } from 'rxjs';
-import { kind10002 } from '$lib/stores/relays';
-import {
-	kind10030,
-	kind30030Stock,
-	latestEmojisFromOthers,
-	subscriptionStartTime
-} from '$lib/stores/palette';
+
+import { kind30030Stock, latestEmojisFromOthers, subscriptionStartTime } from '$lib/stores/palette';
 import { loginUser } from '$lib/stores/user';
 import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from './utils';
+import { kind10030, kind10002 } from '$lib/stores/storages';
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
 rxNostr.setDefaultRelays(initRelays);
@@ -134,14 +130,16 @@ async function fetchLatestSingleEvent(
  */
 export async function setDefaultRelaysfrom10002(pubkey: string): Promise<void> {
 	return fetchLatestSingleEvent(pubkey, 10002, (packet) => {
-		kind10002.value = packet.event;
+		if (packet.event.created_at > (kind10002.value?.created_at || 0))
+			kind10002.value = packet.event;
 		rxNostr.setDefaultRelays(packet.event.tags);
 	});
 }
 
 export async function fetchLatestKind10030(pubkey: string): Promise<void> {
 	return fetchLatestSingleEvent(pubkey, 10030, (packet) => {
-		kind10030.value = packet.event;
+		if (packet.event.created_at > (kind10030.value?.created_at || 0))
+			kind10030.value = packet.event;
 	});
 }
 
@@ -172,11 +170,15 @@ export async function createMyKind10030IfMissing(): Promise<void> {
 	await fetchLatestKind10030(loginUser.value);
 }
 
-export async function fetchMissingKind30030IntoStock(filters: Filter[]) {
-	if (filters.length === 0) {
-		return;
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks: T[][] = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
 	}
+	return chunks;
+}
 
+async function fetchKind30030ChunkIntoStock(filters: Filter[]): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		const flushes$ = new Subject<void>();
 		const rxReq = createRxBackwardReq();
@@ -210,6 +212,15 @@ export async function fetchMissingKind30030IntoStock(filters: Filter[]) {
 		rxReq.emit(filters);
 		rxReq.over();
 	});
+}
+
+export async function fetchMissingKind30030IntoStock(filters: Filter[], chunkSize = 10) {
+	if (filters.length === 0) {
+		return;
+	}
+
+	const chunks = chunkArray(filters, chunkSize);
+	await Promise.all(chunks.map((chunk) => fetchKind30030ChunkIntoStock(chunk)));
 }
 
 export async function fetchAllKind30030FromOthers(filters: Filter[]): Promise<void> {

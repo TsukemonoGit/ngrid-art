@@ -9,8 +9,9 @@
 		setDefaultRelaysfrom10002,
 		setForwardFilters
 	} from '$lib/nostr/rx-nostr';
-	import { kind10030, kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
+	import { kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
 	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
+	import { kind10030, loadStorageData } from '$lib/stores/storages';
 
 	let { children } = $props();
 
@@ -31,6 +32,8 @@
 	};
 
 	onMount(async () => {
+		loadStorageData();
+
 		// Nostr Login初期化（1度だけ実行）
 		if (!nostrLoginInitialized) {
 			const nostrLogin = await import('@konemono/nostr-login');
@@ -82,7 +85,9 @@
 		// kind30030Stock を依存に含めるために参照する
 		const stock = kind30030Stock.value;
 		if (!stock) return;
-		syncPaletteFromKind10030(k, { backfillMissing: false });
+		untrack(() => {
+			syncPaletteFromKind10030(k, { backfillMissing: false });
+		});
 	});
 </script>
 

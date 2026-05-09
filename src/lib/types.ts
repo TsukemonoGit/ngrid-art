@@ -40,4 +40,6 @@ export interface PaletteSection {
 	label: string;
 	// このセクションに所属する絵文字リスト
 	emojis: PaletteEmoji[];
+	// タブのセクションIDにつかう
+	ref: ReplaceableEventSpecifier | 'stray';
 }

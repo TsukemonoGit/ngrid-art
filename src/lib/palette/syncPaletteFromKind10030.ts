@@ -1,6 +1,7 @@
 import { fetchMissingKind30030IntoStock } from '$lib/nostr/rx-nostr';
 import { isReplaceableEventSpecifier } from '$lib/nostr/utils';
-import { kind30030Stock, palette } from '$lib/stores/palette';
+import { kind30030Stock } from '$lib/stores/palette';
+import { palette } from '$lib/stores/storages';
 import type { PaletteEmoji, PaletteSection } from '$lib/types';
 import type { Event as NostrEvent, Filter, ReplaceableEventSpecifier } from 'nostr-typedef';
 
@@ -102,9 +103,15 @@ export async function syncPaletteFromKind10030(
 	}
 
 	const stock = kind30030Stock.value;
+	const currentPalette = palette.value ?? [];
+
 	const sections: PaletteSection[] = aTags.flatMap((atag) => {
 		const event = stock.get(atag);
-		if (!event) return [];
+		if (!event) {
+			// stockに無い場合はLocalStorageから復元済みのセクションをフォールバックとして使う
+			const existing = currentPalette.find((s) => s.ref === atag);
+			return existing ? [existing] : [];
+		}
 
 		const label = (event.tags as string[][]).find((t) => t[0] === 'd')?.[1] ?? atag;
 		const emojis: PaletteEmoji[] = (event.tags as string[][])
@@ -117,7 +124,7 @@ export async function syncPaletteFromKind10030(
 				label: t[1]
 			}));
 
-		return [{ label, emojis }];
+		return [{ label, emojis, ref: atag }];
 	});
 
 	// 10030に直接ぶら下がるemojiタグ（のら絵文字）
@@ -131,7 +138,7 @@ export async function syncPaletteFromKind10030(
 		}));
 
 	if (strayEmojis.length > 0) {
-		sections.push({ label: 'Stray', emojis: strayEmojis });
+		sections.push({ label: 'Stray', emojis: strayEmojis, ref: 'stray' });
 	}
 
 	palette.value = resolveShortcodeCollisions(sections);

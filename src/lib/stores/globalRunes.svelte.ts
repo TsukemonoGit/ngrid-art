@@ -4,7 +4,6 @@
  * @template T 状態の値の型
  * @param {T | null} [initialValue=null] 状態の初期値。デフォルトは null
  * @param {string} [storageKey] オプションの localStorage キー。指定された場合:
- *   - 初期化時に localStorage から復元
  *   - 値が変更されるたびに自動的に localStorage に保存
  *   - null にセットされると localStorage から削除
  *   - **注意**: Map や SvelteMap は JSON.stringify でシリアライズできないため、
@@ -37,59 +36,64 @@ type GlobalState<T> = {
 	value: T;
 };
 
-export function createGlobalState<T>(initialValue: T, storageKey?: string): GlobalState<T>;
+type StorageKeyResolver = string | (() => string | undefined);
+
+function resolveStorageKey(storageKey?: StorageKeyResolver): string | undefined {
+	if (!storageKey) {
+		return undefined;
+	}
+
+	if (typeof storageKey === 'function') {
+		return storageKey();
+	}
+
+	return storageKey;
+}
+
+export function createGlobalState<T>(
+	initialValue: T,
+	storageKey?: StorageKeyResolver
+): GlobalState<T>;
 export function createGlobalState<T>(
 	initialValue: T | null,
-	storageKey?: string
+	storageKey?: StorageKeyResolver
 ): GlobalState<T | null>;
 export function createGlobalState<T>(
 	initialValue?: T | null,
-	storageKey?: string
+	storageKey?: StorageKeyResolver
 ): GlobalState<T | null>;
-export function createGlobalState<T>(initialValue: T | null = null, storageKey?: string) {
+export function createGlobalState<T>(
+	initialValue: T | null = null,
+	storageKey?: StorageKeyResolver
+) {
 	let _value = $state<T | null>(initialValue);
-	let hydrated = false;
 
-	function hydrateFromStorage() {
-		if (hydrated || !storageKey || typeof window === 'undefined') {
+	function persistToStorage(v: T | null) {
+		if (typeof window === 'undefined') {
 			return;
 		}
 
-		try {
-			const stored = localStorage.getItem(storageKey);
-			if (stored !== null) {
-				_value = JSON.parse(stored) as T;
-			}
-		} catch (e) {
-			console.warn(`Failed to restore ${storageKey} from localStorage:`, e);
-		} finally {
-			hydrated = true;
-		}
-	}
-
-	function persistToStorage(v: T | null) {
-		if (!storageKey || typeof window === 'undefined') {
+		const resolvedKey = resolveStorageKey(storageKey);
+		if (!resolvedKey) {
 			return;
 		}
 
 		try {
 			if (v === null) {
-				localStorage.removeItem(storageKey);
+				localStorage.removeItem(resolvedKey);
 			} else {
-				localStorage.setItem(storageKey, JSON.stringify(v));
+				localStorage.setItem(resolvedKey, JSON.stringify(v));
 			}
 		} catch (e) {
-			console.warn(`Failed to save ${storageKey} to localStorage:`, e);
+			console.warn(`Failed to save ${resolvedKey} to localStorage:`, e);
 		}
 	}
 
 	return {
 		get value() {
-			hydrateFromStorage();
 			return _value;
 		},
 		set value(v: T | null) {
-			hydrateFromStorage();
 			_value = v;
 			persistToStorage(v);
 		}

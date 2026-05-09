@@ -146,3 +146,43 @@ export async function fetchLatestKind10030(pubkey: string): Promise<void> {
 		kind10030.value = packet.event;
 	});
 }
+
+export async function fetchMissingKind30030IntoStock(filters: Filter[]) {
+	if (filters.length === 0) {
+		return;
+	}
+
+	return new Promise<void>((resolve, reject) => {
+		const flushes$ = new Subject<void>();
+		const rxReq = createRxBackwardReq();
+
+		const sub = rxNostr
+			.use(rxReq)
+			.pipe(uniq(flushes$))
+			.subscribe({
+				next: (packet) => {
+					if (packet.event.kind !== 30030) {
+						return;
+					}
+
+					const atag = eventToAtag(packet.event);
+					const existing = kind30030Stock.value.get(atag);
+					if (!existing || packet.event.created_at > existing.created_at) {
+						kind30030Stock.value.set(atag, packet.event);
+					}
+				},
+				error: (err) => {
+					sub.unsubscribe();
+					reject(err);
+				},
+				complete: () => {
+					sub.unsubscribe();
+					flushes$.next();
+					resolve();
+				}
+			});
+
+		rxReq.emit(filters);
+		rxReq.over();
+	});
+}

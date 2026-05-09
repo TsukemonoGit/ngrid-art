@@ -2,7 +2,7 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { waitNostr } from 'nip07-awaiter';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { loginUser } from '$lib/stores/user';
 	import {
 		fetchLatestKind10030,
@@ -10,6 +10,7 @@
 		setForwardFilters
 	} from '$lib/nostr/rx-nostr';
 	import { kind10030, subscriptionStartTime } from '$lib/stores/palette';
+	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
 
 	let { children } = $props();
 
@@ -62,16 +63,16 @@
 
 		//現状での最新の10030を取得
 		await fetchLatestKind10030(loginUser.value);
+		console.log('update');
 	}
 
 	$effect(() => {
-		if (kind10030.value) {
-			// kind10030 が変わるたびここが走る
-			// 30030の取得・のら絵文字処理など
-			// 最終的にパレットを完成させ、ローカルストレじに保存するまでが目標
-			// パレットは、10030のタグの順番に表示(のらは一番上か一番下にまとめる)
-			// えーーーーっと
-		}
+		const k = kind10030.value;
+		if (!k) return;
+
+		untrack(() => {
+			syncPaletteFromKind10030(k);
+		});
 	});
 </script>
 

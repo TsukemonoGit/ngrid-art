@@ -1,8 +1,14 @@
-import { GRID_INITIAL_SIZE } from '$lib/constracts/palette';
+import {
+	APP_30030_DTAG,
+	APP_30030_PUBKEY,
+	GRID_INITIAL_SIZE,
+	NULL_EMOJI_SHORTCODE,
+	NULL_EMOJI_URL
+} from '$lib/constracts/palette';
 
 import { createGlobalState } from '$lib/stores/globalRunes.svelte';
 import { grid } from '$lib/stores/storages';
-import type { Cell, Grid } from '$lib/types';
+import type { Cell, Grid, NullEmojiConfig, PaletteEmoji } from '$lib/types';
 
 /** 空のGridを生成する */
 export function createInitGrid(): Grid {
@@ -146,4 +152,15 @@ export function rowHasEmoji(grid: Grid, row: number): boolean {
 /** 列に絵文字が配置されているかチェックする */
 export function colHasEmoji(grid: Grid, col: number): boolean {
 	return grid.some((row) => row[col] !== null);
+}
+
+/** デフォルトnull絵文字の初期値を生成する */
+export function createDefaultNullEmoji(): NullEmojiConfig {
+	const defaultEmoji: PaletteEmoji = {
+		shortcode: NULL_EMOJI_SHORTCODE,
+		url: NULL_EMOJI_URL,
+		originalShortcode: NULL_EMOJI_SHORTCODE,
+		ref: `30030:${APP_30030_PUBKEY}:${APP_30030_DTAG}`
+	};
+	return { type: 'custom', emoji: defaultEmoji };
 }

@@ -19,10 +19,13 @@
 	import { selectedEmoji } from '$lib/stores/palette';
 	import type { EmojiTag, PaletteEmoji } from '$lib/types';
 	import { GRID_MAX_SIZE } from '$lib/constracts/palette';
-	import { Minus, Plus, Trash2, Undo, Redo } from '@lucide/svelte';
+	import { Minus, Plus, Trash2, Undo, Redo, Share } from '@lucide/svelte';
 	import { grid } from '$lib/stores/storages';
 	import { isMobile } from '$lib/stores/user';
 	import SelectedEmoji from './SelectedEmoji.svelte';
+	import ShareDialog from './ShareDialog.svelte';
+
+	let shareOpen = $state(false);
 
 	// Svelte storesから値を購読
 	let contextMenu = $state<{
@@ -205,6 +208,11 @@
 	function handleRedo(): void {
 		redo();
 	}
+
+	/** シェアダイアログを開く */
+	function handleShare(): void {
+		shareOpen = true;
+	}
 </script>
 
 <div
@@ -365,6 +373,14 @@
 		>
 			<Trash2 />
 		</button>
+		<button
+			class="flex items-center justify-center rounded-lg bg-surface-container p-2 text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-30"
+			onclick={handleShare}
+			aria-label="share"
+			title="share"
+		>
+			<Share />
+		</button>
 	</div>
 
 	{#if contextMenu}
@@ -422,3 +438,5 @@
 	>
 		⌨
 	</button>{/if}
+
+<ShareDialog bind:open={shareOpen} />

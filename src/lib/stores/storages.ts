@@ -1,11 +1,11 @@
-import { KIND10002_KEY } from '$lib/constracts/storageKey';
+import { KIND10002_KEY, NULL_EMOJI } from '$lib/constracts/storageKey';
 import { createGlobalState } from './globalRunes.svelte';
 
 import { GRID_KEY, KIND10030_KEY, PALETTE_KEY } from '$lib/constracts/storageKey';
 import type { Event as NostrEvent } from 'nostr-typedef';
 
-import type { Grid, PaletteSection } from '$lib/types';
-import { createInitGrid } from '$lib/palette/grid';
+import type { Grid, NullEmojiConfig, PaletteSection } from '$lib/types';
+import { createDefaultNullEmoji, createInitGrid } from '$lib/palette/grid';
 
 function readStorageValue<T>(storageKey: string): T | null {
 	if (typeof window === 'undefined') {
@@ -36,6 +36,9 @@ export const grid = createGlobalState<Grid>(createInitGrid(), GRID_KEY);
 //Palette 読み込みまつと遅くなるから、初手は保存されたやつで表示しておく
 export const palette = createGlobalState<PaletteSection[]>([], PALETTE_KEY);
 
+/** null絵文字設定store */
+export const nullEmoji = createGlobalState<NullEmojiConfig>(createDefaultNullEmoji());
+
 export function loadStorageData() {
 	const kind10002Value = readStorageValue<NostrEvent>(KIND10002_KEY);
 	if (kind10002Value !== null) kind10002.value = kind10002Value;
@@ -48,6 +51,9 @@ export function loadStorageData() {
 
 	const paletteValue = readStorageValue<PaletteSection[]>(PALETTE_KEY);
 	if (paletteValue !== null) palette.value = paletteValue;
+
+	const nullValue = readStorageValue<NullEmojiConfig>(NULL_EMOJI);
+	if (nullValue !== null) nullEmoji.value = nullValue;
 
 	//console.log(palette.value);
 }

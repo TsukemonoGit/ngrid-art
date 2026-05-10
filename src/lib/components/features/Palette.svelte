@@ -166,14 +166,8 @@
 		flex-direction: column;
 		gap: 0.5rem;
 
-		/**--------仮-----------
-		* 将来的にレイアウトが整ったら（サイドバーに入れるなど）、
-		* 親ラッパーに height を設定
-		* height: 100%に戻す
-		*/
-		height: 90dvh;
-		max-height: 90dvh;
-		/** ------------------*/
+		height: 100%;
+		max-height: 100%;
 
 		min-height: 0;
 		overflow: hidden;

@@ -66,7 +66,7 @@
 {:else}
 	<!-- PCレイアウト -->
 	<div class="flex min-h-0 flex-1 flex-row overflow-hidden bg-background text-on-background">
-		<div class="w-70 shrink-0 overflow-hidden border-r border-outline-variant">
+		<div class="w-76 shrink-0 overflow-hidden border-r border-outline-variant">
 			<Palette />
 		</div>
 		<div class="min-h-0 min-w-0 flex-1 overflow-auto p-2">

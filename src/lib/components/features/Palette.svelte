@@ -167,7 +167,7 @@
 
 		min-height: 0;
 		overflow: hidden;
-		padding: 0.75rem;
+		padding: 0.5rem;
 		background-color: var(--color-surface-container);
 		color: var(--color-on-surface);
 	}

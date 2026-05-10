@@ -72,7 +72,8 @@
 	onMount(async () => {
 		console.log('onMount');
 		await waitForRelayReady();
-		if (kind30030Events.length < 20) {
+	
+		if (latestEmojisFromOthers.value.length < PAGE_SIZE) {
 			await fetchMore();
 		}
 	});

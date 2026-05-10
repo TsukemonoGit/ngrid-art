@@ -67,7 +67,7 @@
 	let picture = $derived(profile?.picture ?? '');
 	let displayName = $derived(profile?.display_name ?? profile?.name ?? '');
 
-	const EMOJI_PREVIEW_LIMIT = 20;
+	const EMOJI_PREVIEW_LIMIT = 30;
 	let showAllEmojis = $state(false);
 	let visibleEmojis = $derived(
 		showAllEmojis ? eventSet.emojiTags : eventSet.emojiTags.slice(0, EMOJI_PREVIEW_LIMIT)

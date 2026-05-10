@@ -17,3 +17,6 @@ export const subscriptionStartTime = createGlobalState<number>(Math.floor(Date.n
 export const selectedEmoji = createGlobalState<PaletteEmoji | null>(null);
 
 export const kind0Cache = createGlobalState<SvelteMap<string, NostrEvent>>(new SvelteMap());
+
+//アプリデフォnull絵文字りすとが、10030に登録されているかどうかのチェック
+export const hasDefaultNullSet = createGlobalState(false);

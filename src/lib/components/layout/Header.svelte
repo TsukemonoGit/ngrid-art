@@ -1,5 +1,6 @@
 <script>
 	import PageChange from './PageChange.svelte';
+	import Settings from './Settings.svelte';
 </script>
 
 <!-- ヘッダー -->
@@ -8,6 +9,6 @@
 >
 	<h1 class="text-lg font-bold text-on-surface">Nostr Grid Art</h1>
 	<div class="flex gap-2">
-		<PageChange /><!--<Settings /><LoginUserIcon />ログイン、設定ぼたん-->
+		<PageChange /><Settings />
 	</div>
 </header>

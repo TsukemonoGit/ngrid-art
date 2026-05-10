@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import { X, Copy, Check } from '@lucide/svelte';
+	import { X, Copy, Check, Send, ExternalLink } from '@lucide/svelte';
 
 	import { loginUser } from '$lib/stores/user';
 	import { generateContent, generateTags } from '$lib/palette/output';
@@ -85,7 +85,7 @@
 					disabled={!loginUser.value}
 					title={loginUser.value ? undefined : 'ログインが必要です'}
 				>
-					kind1 として投稿
+					<Send size={18} /> kind1 として投稿
 					{#if !loginUser.value}
 						<span class="ml-auto text-xs text-on-surface-variant">要ログイン</span>
 					{/if}
@@ -97,7 +97,7 @@
 					disabled={!loginUser.value}
 					title={loginUser.value ? undefined : 'ログインが必要です'}
 				>
-					nostr-share-component
+					<ExternalLink size={18} />nostr-share-component
 					{#if !loginUser.value}
 						<span class="ml-auto text-xs text-on-surface-variant">要ログイン</span>
 					{/if}

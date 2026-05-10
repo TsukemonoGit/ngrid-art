@@ -14,6 +14,7 @@
 	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
 	import { kind10030, loadStorageData } from '$lib/stores/storages';
 	import Header from '$lib/components/layout/Header.svelte';
+	import { checkDefaultNullin10030 } from '$lib/palette/grid';
 
 	let { children } = $props();
 
@@ -77,6 +78,7 @@
 
 		untrack(() => {
 			syncPaletteFromKind10030(k, { backfillMissing: true });
+			checkDefaultNullin10030();
 		});
 	});
 

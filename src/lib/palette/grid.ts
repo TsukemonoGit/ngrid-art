@@ -1,4 +1,5 @@
 import {
+	APP_30030_ATAG,
 	APP_30030_DTAG,
 	APP_30030_PUBKEY,
 	GRID_INITIAL_SIZE,
@@ -7,7 +8,8 @@ import {
 } from '$lib/constracts/palette';
 
 import { createGlobalState } from '$lib/stores/globalRunes.svelte';
-import { grid } from '$lib/stores/storages';
+import { hasDefaultNullSet } from '$lib/stores/palette';
+import { grid, kind10030 } from '$lib/stores/storages';
 import type { Cell, Grid, NullEmojiConfig, PaletteEmoji } from '$lib/types';
 
 /** 空のGridを生成する */
@@ -163,4 +165,10 @@ export function createDefaultNullEmoji(): NullEmojiConfig {
 		ref: `30030:${APP_30030_PUBKEY}:${APP_30030_DTAG}`
 	};
 	return { type: 'custom', emoji: defaultEmoji };
+}
+
+/**10030にでふぉえもじがはいっているかどうか */
+export function checkDefaultNullin10030() {
+	hasDefaultNullSet.value =
+		kind10030.value?.tags.some((tag) => tag[0] === 'a' && tag[1] === APP_30030_ATAG) ?? false;
 }

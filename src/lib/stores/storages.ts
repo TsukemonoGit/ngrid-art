@@ -37,7 +37,7 @@ export const grid = createGlobalState<Grid>(createInitGrid(), GRID_KEY);
 export const palette = createGlobalState<PaletteSection[]>([], PALETTE_KEY);
 
 /** null絵文字設定store */
-export const nullEmoji = createGlobalState<NullEmojiConfig>(createDefaultNullEmoji());
+export const nullEmoji = createGlobalState<NullEmojiConfig>(createDefaultNullEmoji(), NULL_EMOJI);
 
 export function loadStorageData() {
 	const kind10002Value = readStorageValue<NostrEvent>(KIND10002_KEY);

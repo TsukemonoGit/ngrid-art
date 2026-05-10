@@ -3,9 +3,10 @@
 	import Palette from '$lib/components/features/Palette.svelte';
 	import { isMobile } from '$lib/stores/user';
 
-	import { ChevronDown, Palette as PaletteIcon, User } from '@lucide/svelte';
+	import { ChevronDown, ChevronLeft, ChevronRight, Palette as PaletteIcon, User } from '@lucide/svelte';
 
 	let paletteOpen = $state(false);
+	let sidebarWide = $state(false);
 </script>
 
 {#if isMobile.value}
@@ -66,8 +67,24 @@
 {:else}
 	<!-- PCレイアウト -->
 	<div class="flex min-h-0 flex-1 flex-row overflow-hidden bg-background text-on-background">
-		<div class="w-76 shrink-0 overflow-hidden border-r border-outline-variant">
+		<div
+			class="relative shrink-0 border-r border-outline-variant transition-[width] duration-300 ease-in-out"
+			class:w-76={!sidebarWide}
+			class:w-120={sidebarWide}
+		>
 			<Palette />
+			<!-- 幅切り替えボタン：右ボーダー上に配置 -->
+			<button
+				class="absolute top-2 -right-3.5 z-10 flex h-8 w-8  items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container-highest "
+				onclick={() => (sidebarWide = !sidebarWide)}
+				aria-label={sidebarWide ? 'サイドバーを狭くする' : 'サイドバーを広くする'}
+			>
+				{#if sidebarWide}
+					<ChevronLeft size={20} />
+				{:else}
+					<ChevronRight size={20} />
+				{/if}
+			</button>
 		</div>
 		<div class="min-h-0 min-w-0 flex-1 overflow-auto p-2">
 			<Grid />

@@ -27,6 +27,37 @@
 
 	let shareOpen = $state(false);
 
+	// ホバー中のボタン種別
+	type HoveredAction =
+		| 'delete-top'
+		| 'add-top'
+		| 'delete-bottom'
+		| 'add-bottom'
+		| 'delete-left'
+		| 'add-left'
+		| 'delete-right'
+		| 'add-right'
+		| null;
+	let hoveredAction = $state<HoveredAction>(null);
+
+	/** ホバー中のアクションに応じてセルの削除ハイライトクラスを返す */
+	function getCellHighlight(rowIndex: number, colIndex: number): 'delete' | null {
+		const rows = grid.value.length;
+		const totalCols = grid.value[0]?.length ?? 0;
+		switch (hoveredAction) {
+			case 'delete-top':
+				return rowIndex === 0 ? 'delete' : null;
+			case 'delete-bottom':
+				return rowIndex === rows - 1 ? 'delete' : null;
+			case 'delete-left':
+				return colIndex === 0 ? 'delete' : null;
+			case 'delete-right':
+				return colIndex === totalCols - 1 ? 'delete' : null;
+			default:
+				return null;
+		}
+	}
+
 	// Svelte storesから値を購読
 	let contextMenu = $state<{
 		row: number;
@@ -231,6 +262,8 @@
 			<button
 				class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-error/20 disabled:cursor-not-allowed disabled:opacity-30"
 				onclick={() => handleDeleteRow(0)}
+				onmouseenter={() => (hoveredAction = 'delete-top')}
+				onmouseleave={() => (hoveredAction = null)}
 				disabled={grid.value.length <= 1}
 				aria-label="上端の行を削除"
 			>
@@ -239,6 +272,8 @@
 			<button
 				class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-30"
 				onclick={handleAddRowTop}
+				onmouseenter={() => (hoveredAction = 'add-top')}
+				onmouseleave={() => (hoveredAction = null)}
 				disabled={grid.value.length >= GRID_MAX_SIZE}
 				aria-label="上に行を挿入"
 			>
@@ -253,6 +288,8 @@
 				<button
 					class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-error/20 disabled:cursor-not-allowed disabled:opacity-30"
 					onclick={() => handleDeleteCol(0)}
+					onmouseenter={() => (hoveredAction = 'delete-left')}
+					onmouseleave={() => (hoveredAction = null)}
 					disabled={grid.value[0]?.length <= 1}
 					aria-label="左端の列を削除"
 				>
@@ -261,6 +298,8 @@
 				<button
 					class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-30"
 					onclick={handleAddColLeft}
+					onmouseenter={() => (hoveredAction = 'add-left')}
+					onmouseleave={() => (hoveredAction = null)}
 					disabled={grid.value[0]?.length >= GRID_MAX_SIZE}
 					aria-label="左に列を挿入"
 				>
@@ -270,13 +309,33 @@
 
 			<!-- グリッド本体 -->
 			<div class="min-h-0 min-w-0 flex-1 overflow-auto">
-				<div class="grid" style="grid-template-columns: repeat({cols}, 48px);">
+				<div class="grid" style="grid-template-columns: repeat({cols + 2}, 48px);">
+					<!-- 上ゴースト行 -->
+					{#each Array.from({ length: cols + 2 }, (_, i) => i) as i (i)}
+						<div
+							class="h-12 w-12 transition-colors {hoveredAction === 'add-top' &&
+							i > 0 &&
+							i < cols + 1
+								? 'bg-primary-container'
+								: ''}"
+						></div>
+					{/each}
 					{#each grid.value as row, rowIndex (rowIndex)}
+						<!-- 左ゴーストセル -->
+						<div
+							class="h-12 w-12 transition-colors {hoveredAction === 'add-left'
+								? 'bg-primary-container'
+								: ''}"
+						></div>
 						{#each row as cell, colIndex (colIndex)}
+							{@const highlight = getCellHighlight(rowIndex, colIndex)}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
 								tabindex="0"
-								class="flex h-12 w-12 cursor-pointer items-center justify-center overflow-hidden border border-neutral-200 bg-neutral-50 hover:bg-cyan-50"
+								class="flex h-12 w-12 cursor-pointer items-center justify-center overflow-hidden border border-neutral-200 transition-colors hover:bg-cyan-50 {highlight ===
+								'delete'
+									? 'bg-error-container'
+									: 'bg-neutral-50'}"
 								role="gridcell"
 								aria-label={cell ? `絵文字 ${cell[1]}` : '空セル'}
 								onclick={(e) => {
@@ -294,6 +353,22 @@
 								{/if}
 							</div>
 						{/each}
+						<!-- 右ゴーストセル -->
+						<div
+							class="h-12 w-12 transition-colors {hoveredAction === 'add-right'
+								? 'bg-primary-container'
+								: ''}"
+						></div>
+					{/each}
+					<!-- 下ゴースト行 -->
+					{#each Array.from({ length: cols + 2 }, (_, i) => i) as i (i)}
+						<div
+							class="h-12 w-12 transition-colors {hoveredAction === 'add-bottom' &&
+							i > 0 &&
+							i < cols + 1
+								? 'bg-primary-container'
+								: ''}"
+						></div>
 					{/each}
 				</div>
 			</div>
@@ -306,6 +381,8 @@
 						const cols = grid.value[0]?.length ?? 0;
 						handleDeleteCol(cols - 1);
 					}}
+					onmouseenter={() => (hoveredAction = 'delete-right')}
+					onmouseleave={() => (hoveredAction = null)}
 					disabled={grid.value[0]?.length <= 1}
 					aria-label="右端の列を削除"
 				>
@@ -314,6 +391,8 @@
 				<button
 					class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-30"
 					onclick={handleAddColRight}
+					onmouseenter={() => (hoveredAction = 'add-right')}
+					onmouseleave={() => (hoveredAction = null)}
 					disabled={grid.value[0]?.length >= GRID_MAX_SIZE}
 					aria-label="右に列を追加"
 				>
@@ -330,6 +409,8 @@
 				const rows = grid.value.length;
 				handleDeleteRow(rows - 1);
 			}}
+			onmouseenter={() => (hoveredAction = 'delete-bottom')}
+			onmouseleave={() => (hoveredAction = null)}
 			disabled={grid.value.length <= 1}
 			aria-label="下端の行を削除"
 		>
@@ -338,6 +419,8 @@
 		<button
 			class="flex items-center justify-center rounded-full bg-surface-container p-1 text-on-surface-variant transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-30"
 			onclick={handleAddRowBottom}
+			onmouseenter={() => (hoveredAction = 'add-bottom')}
+			onmouseleave={() => (hoveredAction = null)}
 			disabled={grid.value.length >= GRID_MAX_SIZE}
 			aria-label="下に行を追加"
 		>

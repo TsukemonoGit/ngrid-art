@@ -3,7 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { waitNostr } from 'nip07-awaiter';
 	import { onMount, untrack } from 'svelte';
-	import { loginUser } from '$lib/stores/user';
+	import { isMobile, loginUser } from '$lib/stores/user';
 	import {
 		fetchLatestKind10030,
 		setDefaultRelaysfrom10002,
@@ -88,6 +88,16 @@
 		untrack(() => {
 			syncPaletteFromKind10030(k, { backfillMissing: false });
 		});
+	});
+
+	$effect(() => {
+		const mql = window.matchMedia('(max-width: 768px)');
+		isMobile.value = mql.matches;
+		const handler = (e: MediaQueryListEvent) => {
+			isMobile.value = e.matches;
+		};
+		mql.addEventListener('change', handler);
+		return () => mql.removeEventListener('change', handler);
 	});
 </script>
 

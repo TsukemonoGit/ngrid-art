@@ -120,8 +120,7 @@ export async function syncPaletteFromKind10030(
 				shortcode: t[1],
 				url: t[2],
 				ref: atag,
-				originalShortcode: t[1],
-				label: t[1]
+				originalShortcode: t[1]
 			}));
 
 		return [{ label, emojis, ref: atag }];
@@ -133,8 +132,7 @@ export async function syncPaletteFromKind10030(
 		.map((t) => ({
 			shortcode: t[1],
 			url: t[2],
-			originalShortcode: t[1],
-			label: t[1]
+			originalShortcode: t[1]
 		}));
 
 	if (strayEmojis.length > 0) {

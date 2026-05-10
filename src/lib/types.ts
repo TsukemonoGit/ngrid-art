@@ -10,7 +10,6 @@ export interface PaletteEmoji {
 	url: string;
 	ref?: ReplaceableEventSpecifier; // "30030:pubhex:identifier"（ノラ絵文字は省略）
 	originalShortcode: string; // 衝突前の元ショートコード
-	label: string; //
 }
 
 export type PaletteEmojiTable = Partial<Record<ReplaceableEventSpecifier, PaletteEmoji>>;
@@ -19,7 +18,7 @@ export type PaletteEmojiTable = Partial<Record<ReplaceableEventSpecifier, Palett
 // カスタム絵文字タグ
 // 4要素目はノラ絵文字（10030直接登録）の場合は省略
 // ["emoji", resolvedShortcode, url, "30030:pubhex:identifier"]
-export type EmojiTag = ['emoji', string, string, string?];
+export type EmojiTag = ['emoji', string, string, ReplaceableEventSpecifier?];
 
 //grid
 // グリッド全体

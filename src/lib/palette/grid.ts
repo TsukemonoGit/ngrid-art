@@ -171,4 +171,5 @@ export function createDefaultNullEmoji(): NullEmojiConfig {
 export function checkDefaultNullin10030() {
 	hasDefaultNullSet.value =
 		kind10030.value?.tags.some((tag) => tag[0] === 'a' && tag[1] === APP_30030_ATAG) ?? false;
+	console.log(hasDefaultNullSet.value);
 }

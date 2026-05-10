@@ -1,5 +1,5 @@
 import { fetchMissingKind30030IntoStock } from '$lib/nostr/rx-nostr';
-import { isReplaceableEventSpecifier } from '$lib/nostr/utils';
+import { isReplaceableEventSpecifier } from '$lib/palette/utils';
 import { kind30030Stock } from '$lib/stores/palette';
 import { palette } from '$lib/stores/storages';
 import type { PaletteEmoji, PaletteSection } from '$lib/types';

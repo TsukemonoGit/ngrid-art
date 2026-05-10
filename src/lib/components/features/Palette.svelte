@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { truncateLabel } from '$lib/palette/utils';
 	import { selectedEmoji } from '$lib/stores/palette';
 	import { palette } from '$lib/stores/storages';
 	import { ToggleGroup } from 'bits-ui';
@@ -26,11 +27,6 @@
 		if (el) {
 			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		}
-	}
-
-	function truncateLabel(label: string): string {
-		if (label.length <= 20) return label;
-		return label.slice(0, 15) + '...' + label.slice(-4);
 	}
 
 	$effect(() => {

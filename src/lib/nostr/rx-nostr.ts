@@ -14,7 +14,7 @@ import { Subject } from 'rxjs';
 
 import { kind30030Stock, latestEmojisFromOthers, subscriptionStartTime } from '$lib/stores/palette';
 import { loginUser } from '$lib/stores/user';
-import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from './utils';
+import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from '../palette/utils';
 import { kind10030, kind10002 } from '$lib/stores/storages';
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });

@@ -22,6 +22,7 @@
 	import { Minus, Plus, Trash2, Undo, Redo } from '@lucide/svelte';
 	import { grid } from '$lib/stores/storages';
 	import { isMobile } from '$lib/stores/user';
+	import SelectedEmoji from './SelectedEmoji.svelte';
 
 	// Svelte storesから値を購読
 	let contextMenu = $state<{
@@ -214,8 +215,9 @@
 	onkeydown={handleKeydown}
 	aria-label="絵文字グリッド"
 >
+	<div class="  sticky top-2 self-end"><SelectedEmoji /></div>
 	<!-- グリッドエリア（上下左右に＋/−ボタン付き） -->
-	<div class="flex flex-col">
+	<div class="-mt-10 flex flex-col">
 		<!-- 上端：上に行を追加/削除ボタン -->
 		<div class="flex flex-row items-center justify-center gap-1 py-1">
 			<button
@@ -336,7 +338,7 @@
 	</div>
 
 	<!-- ツールバー -->
-	<div class="mt-2 flex flex-row items-center gap-2">
+	<div class="mt-2 flex flex-row items-center justify-center gap-2">
 		<button
 			class="flex items-center justify-center rounded-lg bg-surface-container p-2 text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-30"
 			onclick={handleUndo}

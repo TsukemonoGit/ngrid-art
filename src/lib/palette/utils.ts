@@ -36,3 +36,9 @@ export function toPubhex(pubkey: string): string {
 
 	return pubkey;
 }
+
+export function truncateLabel(label: string, maxLength = 20, suffixLength = 4): string {
+	if (label.length <= maxLength) return label;
+	const prefixLength = maxLength - suffixLength - 3; // 3 = '...'.length
+	return label.slice(0, prefixLength) + '...' + label.slice(-suffixLength);
+}

@@ -72,8 +72,7 @@
 	onMount(async () => {
 		console.log('onMount');
 		await waitForRelayReady();
-	
-		if (latestEmojisFromOthers.value.length < PAGE_SIZE) {
+		if (latestEmojisFromOthers.value.size === 0) {
 			await fetchMore();
 		}
 	});
@@ -93,7 +92,7 @@
 		{#if isLoading}
 			loading...
 		{:else}
-			low loading
+			now loading
 		{/if}
 	{:else}
 		<!--表示させるデータは kind30030Events。なかみの表示はあとでつくる。-->

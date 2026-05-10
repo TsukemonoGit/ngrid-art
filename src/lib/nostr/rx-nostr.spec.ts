@@ -13,7 +13,7 @@ vi.mock('@rx-nostr/crypto', () => ({
 	verifier: {}
 }));
 
-vi.mock('$lib/constracts/relays', () => ({
+vi.mock('$lib/constracts/nostr', () => ({
 	initRelays: []
 }));
 

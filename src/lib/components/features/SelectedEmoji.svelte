@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { truncateLabel } from '$lib/palette/utils';
+	import { truncateLabel } from '$lib/utils/utils';
 	import { selectedEmoji } from '$lib/stores/palette';
 </script>
 

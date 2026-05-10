@@ -14,3 +14,5 @@ export const initRelays: string[] = [
 	'wss://indexer.coracle.social',
 	'wss://nostr.wine'
 ];
+
+export const FETCHLIMIT = 200;

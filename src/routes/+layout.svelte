@@ -7,11 +7,13 @@
 	import {
 		fetchLatestKind10030,
 		setDefaultRelaysfrom10002,
-		setForwardFilters
+		setForwardFilters,
+		waitForRelayReady
 	} from '$lib/nostr/rx-nostr';
 	import { kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
 	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
 	import { kind10030, loadStorageData } from '$lib/stores/storages';
+	import Header from '$lib/components/layout/Header.svelte';
 
 	let { children } = $props();
 
@@ -37,11 +39,11 @@
 		// Nostr Login初期化（1度だけ実行）
 		if (!nostrLoginInitialized) {
 			const nostrLogin = await import('@konemono/nostr-login');
+			document.addEventListener('nlAuth', handleNlAuth);
 			await waitNostr(1000);
 			try {
 				await nostrLogin.init({});
 				nostrLoginInitialized = true;
-				document.addEventListener('nlAuth', handleNlAuth);
 			} catch (error) {
 				console.log('Nostr Login initialization error:', error);
 			}
@@ -57,7 +59,7 @@
 	async function updateData() {
 		//まず10002を取得してデフォリレーにせっと
 		await setDefaultRelaysfrom10002(loginUser.value);
-
+		await waitForRelayReady();
 		//未来の購読設定
 		setForwardFilters([
 			{ kinds: [10030], authors: [loginUser.value], since: subscriptionStartTime.value },
@@ -102,4 +104,7 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
-{@render children()}
+<div class="flex h-dvh flex-col overflow-hidden">
+	<Header />
+	{@render children()}
+</div>

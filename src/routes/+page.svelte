@@ -10,7 +10,7 @@
 
 {#if isMobile.value}
 	<!-- モバイルレイアウト -->
-	<div class="flex h-dvh flex-col overflow-hidden bg-background text-on-background">
+	<div class="flex flex-col overflow-hidden bg-background text-on-background">
 		<!-- グリッドエリア -->
 		<div class="min-h-0 flex-1 overflow-auto">
 			<Grid />
@@ -39,26 +39,12 @@
 	</div>
 {:else}
 	<!-- PCレイアウト -->
-	<div class="flex h-dvh flex-col overflow-hidden bg-background text-on-background">
-		<!-- ヘッダー -->
-		<header
-			class="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-2"
-		>
-			<h1 class="text-lg font-bold text-on-surface">Nostr Grid Art</h1>
-			<div class="flex gap-2"><!--ログイン、設定ぼたん--></div>
-		</header>
-
-		<!-- メインコンテンツ：パレット＋グリッド -->
-		<div class="flex min-h-0 flex-1 flex-row overflow-hidden">
-			<!-- パレットカラム -->
-			<div class="w-64 shrink-0 overflow-hidden border-r border-outline-variant">
-				<Palette />
-			</div>
-
-			<!-- グリッドカラム -->
-			<div class="min-h-0 min-w-0 flex-1 overflow-auto p-2">
-				<Grid />
-			</div>
+	<div class="flex min-h-0 flex-1 flex-row overflow-hidden bg-background text-on-background">
+		<div class="w-64 shrink-0 overflow-hidden border-r border-outline-variant">
+			<Palette />
+		</div>
+		<div class="min-h-0 min-w-0 flex-1 overflow-auto p-2">
+			<Grid />
 		</div>
 	</div>
 {/if}

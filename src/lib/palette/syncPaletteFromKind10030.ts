@@ -1,6 +1,6 @@
 import { fetchMissingKind30030IntoStock } from '$lib/nostr/rx-nostr';
-import { isReplaceableEventSpecifier } from '$lib/palette/utils';
-import { kind30030Stock } from '$lib/stores/palette';
+import { isReplaceableEventSpecifier } from '$lib/utils/utils';
+import { kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
 import { palette } from '$lib/stores/storages';
 import type { PaletteEmoji, PaletteSection } from '$lib/types';
 import type { Event as NostrEvent, Filter, ReplaceableEventSpecifier } from 'nostr-typedef';
@@ -94,7 +94,12 @@ export async function syncPaletteFromKind10030(
 			}
 
 			const identifier = identifierParts.join(':');
-			filters.push({ kinds: [30030], authors: [pubkey], '#d': [identifier] });
+			filters.push({
+				kinds: [30030],
+				authors: [pubkey],
+				'#d': [identifier],
+				until: subscriptionStartTime.value
+			});
 		}
 
 		if (filters.length > 0) {
@@ -113,8 +118,10 @@ export async function syncPaletteFromKind10030(
 			return existing ? [existing] : [];
 		}
 
-		const label = (event.tags as string[][]).find((t) => t[0] === 'd')?.[1] ?? atag;
-		const emojis: PaletteEmoji[] = (event.tags as string[][])
+		const tags = event.event.tags as string[][];
+		const label =
+			tags.find((t) => t[0] === 'title')?.[1] ?? tags.find((t) => t[0] === 'd')?.[1] ?? 'noname';
+		const emojis: PaletteEmoji[] = (event.event.tags as string[][])
 			.filter((t) => t[0] === 'emoji' && t[1] && t[2])
 			.map((t) => ({
 				shortcode: t[1],

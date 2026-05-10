@@ -49,5 +49,5 @@ export function loadStorageData() {
 	const paletteValue = readStorageValue<PaletteSection[]>(PALETTE_KEY);
 	if (paletteValue !== null) palette.value = paletteValue;
 
-	console.log(palette.value);
+	//console.log(palette.value);
 }

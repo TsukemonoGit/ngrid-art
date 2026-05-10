@@ -1,0 +1,123 @@
+<script lang="ts">
+	import { kind0Cache } from '$lib/stores/palette';
+	import { kind10030 } from '$lib/stores/storages';
+	import { loginUser } from '$lib/stores/user';
+	import type { EmojiSetEvent, Profile } from '$lib/types';
+	import { formatAbsoluteDateFromUnix } from '$lib/utils/time';
+	import type { Event as NostrEvent } from 'nostr-typedef';
+
+	interface Props {
+		emojiSetEvent: EmojiSetEvent;
+	}
+
+	let { emojiSetEvent: eventSet }: Props = $props();
+
+	let isAdding = $state(false);
+	let isRemoving = $state(false);
+
+	// 表示中の30030セットが自分の10030に登録済みか
+	let isRegistered = $derived(
+		kind10030.value?.tags.some((tag) => {
+			if (!Array.isArray(tag) || tag.length < 2 || tag[0] !== 'a') return false;
+			const aTagValue = tag[1];
+			// 形式: 30030:pubkey:dtag
+			const expectedValue = `30030:${eventSet.event.pubkey}:${eventSet.dtag}`;
+			return aTagValue === expectedValue;
+		}) ?? false
+	);
+
+	async function handleAdd() {
+		if (!loginUser.value) return;
+		isAdding = true;
+		try {
+			//		await add30030ReferenceToMyKind10030(loginUser.value, eventSet.event);
+		} catch (err) {
+			console.error('Failed to add emoji set:', err);
+		} finally {
+			isAdding = false;
+		}
+	}
+
+	async function handleRemove() {
+		if (!loginUser.value) return;
+		isRemoving = true;
+		try {
+			//		await remove30030ReferenceFromMyKind10030(loginUser.value, eventSet.event);
+		} catch (err) {
+			console.error('Failed to remove emoji set:', err);
+		} finally {
+			isRemoving = false;
+		}
+	}
+
+	let profileEvent = $derived(kind0Cache.value.get(eventSet.event.pubkey));
+	let profile = $derived(getUserProfile(profileEvent));
+	function getUserProfile(ev: NostrEvent | undefined): Profile | null {
+		const content = ev?.content;
+		if (!content) return null;
+		try {
+			return JSON.parse(content) as Profile;
+		} catch {
+			return null;
+		}
+	}
+	let picture = $derived(profile?.picture || '');
+	let displayName = $derived(
+		profile
+			? (profile.display_name ?? profile.name ?? eventSet.event.pubkey.slice(0, 8))
+			: eventSet.event.pubkey.slice(0, 8)
+	);
+</script>
+
+<div
+	class="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4 transition-shadow hover:shadow-md"
+>
+	<!-- セット名 -->
+	<p class="text-base font-bold text-on-surface">{eventSet.label}</p>
+
+	<!-- 作者行 -->
+	<div class="flex items-center gap-2">
+		<div class="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-container-highest">
+			{#if picture}
+				<img src={picture} alt="avatar" loading="lazy" class="h-full w-full object-cover" />
+			{/if}
+		</div>
+		<div class="flex min-w-0 flex-col">
+			<span class="truncate text-sm font-medium text-on-surface">{displayName}</span>
+			<span class="text-xs text-on-surface-variant"
+				>{formatAbsoluteDateFromUnix(eventSet.event.created_at)}</span
+			>
+		</div>
+	</div>
+
+	<div class="flex flex-wrap gap-1">
+		{#each eventSet.emojiTags as [, shortcode, url], i (i)}
+			<div class="h-8 w-8 overflow-hidden rounded bg-surface-container-high" title={shortcode}>
+				<img src={url} alt={shortcode} loading="lazy" class="h-full w-full object-contain" />
+			</div>
+		{/each}
+	</div>
+
+	<!-- アクション -->
+	{#if loginUser.value}
+		<div class="flex justify-end pt-1">
+			{#if isRegistered}
+				<button
+					class="cursor-pointer rounded-full border border-error px-4 py-1 text-sm text-error transition-colors hover:bg-error-container disabled:cursor-not-allowed disabled:opacity-60"
+					onclick={handleRemove}
+					disabled={isRemoving}
+				>
+					{isRemoving ? '削除中...' : '削除'}
+				</button>
+			{:else}
+				<button
+					class="cursor-pointer rounded-full bg-primary px-4 py-1 text-sm text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+					onclick={handleAdd}
+					disabled={isAdding}
+				>
+					{isAdding ? '追加中...' : '追加'}
+				</button>
+			{/if}
+		</div>
+	{/if}
+</div>

@@ -15,6 +15,7 @@
 		waitForRelayReady
 	} from '$lib/nostr/rx-nostr';
 	import { FETCHLIMIT } from '$lib/constracts/nostr';
+	import { kind10030 } from '$lib/stores/storages';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
@@ -24,11 +25,15 @@
 	const filter: Filter = { kinds: [30030], limit: FETCHLIMIT };
 	const kind30030Events = $derived.by(() => {
 		const result = new SvelteMap<string, ViewEvent>();
+		const myATags = new Set(
+			((kind10030.value?.tags ?? []) as string[][]).filter((t) => t[0] === 'a').map((t) => t[1])
+		);
+
 		for (const [atag, emojiSetEvent] of latestEmojisFromOthers.value) {
-			result.set(atag, { emojiSetEvent, registered: false });
+			result.set(atag, { emojiSetEvent, registered: myATags.has(atag) });
 		}
 		for (const [atag, emojiSetEvent] of kind30030Stock.value) {
-			result.set(atag, { emojiSetEvent, registered: true });
+			result.set(atag, { emojiSetEvent, registered: myATags.has(atag) });
 		}
 		return [...result.values()].sort(
 			(a, b) => b.emojiSetEvent.event.created_at - a.emojiSetEvent.event.created_at

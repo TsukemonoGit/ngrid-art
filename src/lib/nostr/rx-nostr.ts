@@ -375,7 +375,11 @@ export async function addKind30030ToMyKind10030(atag: string): Promise<void> {
 	if (currentATags.includes(atag)) {
 		return;
 	}
-
+	const emojiSet = latestEmojisFromOthers.value.get(atag);
+	if (emojiSet) {
+		kind30030Stock.value.set(atag, emojiSet);
+		latestEmojisFromOthers.value.delete(atag);
+	}
 	const nextATags = [...currentATags, atag];
 	const currentTags = (kind10030.value?.tags || []) as string[][];
 

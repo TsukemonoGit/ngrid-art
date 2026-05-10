@@ -23,6 +23,7 @@ import {
 import { loginUser } from '$lib/stores/user';
 import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from '../utils/utils';
 import { kind10030, kind10002 } from '$lib/stores/storages';
+import { snapshot } from './rx-nostr.svelte';
 
 function toEmojiSetEvent(event: NostrEvent): EmojiSetEvent {
 	const label =
@@ -122,7 +123,7 @@ export function setForwardFilters(filters: Filter[]) {
 }
 
 export async function publishEvent(event: EventParameters): Promise<void> {
-	await rxNostr.cast(event);
+	await rxNostr.cast(snapshot(event));
 }
 
 async function fetchLatestSingleEvent(
@@ -155,7 +156,15 @@ async function fetchLatestSingleEvent(
 					flushes$.next();
 					resolve();
 				},
-				error: reject,
+				error: (err) => {
+					// latest() uses last() internally and throws EmptyError when no events are found.
+					// Treat this as a normal "no results" completion.
+					if (err?.name === 'EmptyError') {
+						resolve();
+					} else {
+						reject(err);
+					}
+				},
 				complete: () => {
 					if (!received) {
 						resolve();

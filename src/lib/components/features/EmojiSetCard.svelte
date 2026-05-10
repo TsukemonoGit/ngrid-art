@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { addKind30030ToMyKind10030, removeKind30030FromMyKind10030 } from '$lib/nostr/rx-nostr';
 	import { kind0Cache } from '$lib/stores/palette';
 	import { kind10030 } from '$lib/stores/storages';
 	import { loginUser } from '$lib/stores/user';
@@ -14,15 +15,15 @@
 
 	let isAdding = $state(false);
 	let isRemoving = $state(false);
+	let atag = $derived(`30030:${eventSet.event.pubkey}:${eventSet.dtag}`);
 
 	// 表示中の30030セットが自分の10030に登録済みか
 	let isRegistered = $derived(
 		kind10030.value?.tags.some((tag) => {
 			if (!Array.isArray(tag) || tag.length < 2 || tag[0] !== 'a') return false;
 			const aTagValue = tag[1];
-			// 形式: 30030:pubkey:dtag
-			const expectedValue = `30030:${eventSet.event.pubkey}:${eventSet.dtag}`;
-			return aTagValue === expectedValue;
+
+			return aTagValue === atag;
 		}) ?? false
 	);
 
@@ -31,6 +32,7 @@
 		isAdding = true;
 		try {
 			//		await add30030ReferenceToMyKind10030(loginUser.value, eventSet.event);
+			await addKind30030ToMyKind10030(atag);
 		} catch (err) {
 			console.error('Failed to add emoji set:', err);
 		} finally {
@@ -42,6 +44,7 @@
 		if (!loginUser.value) return;
 		isRemoving = true;
 		try {
+			await removeKind30030FromMyKind10030(atag);
 			//		await remove30030ReferenceFromMyKind10030(loginUser.value, eventSet.event);
 		} catch (err) {
 			console.error('Failed to remove emoji set:', err);

@@ -61,41 +61,61 @@
 			return null;
 		}
 	}
-	let picture = $derived(profile?.picture || '');
-	let displayName = $derived(
-		profile
-			? (profile.display_name ?? profile.name ?? eventSet.event.pubkey.slice(0, 8))
-			: eventSet.event.pubkey.slice(0, 8)
+	let picture = $derived(profile?.picture ?? '');
+	let displayName = $derived(profile?.display_name ?? profile?.name ?? '');
+
+	const EMOJI_PREVIEW_LIMIT = 20;
+	let showAllEmojis = $state(false);
+	let visibleEmojis = $derived(
+		showAllEmojis ? eventSet.emojiTags : eventSet.emojiTags.slice(0, EMOJI_PREVIEW_LIMIT)
 	);
+	let hiddenCount = $derived(eventSet.emojiTags.length - EMOJI_PREVIEW_LIMIT);
 </script>
 
 <div
-	class="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4 transition-shadow hover:shadow-md"
+	class="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-1 transition-shadow"
 >
 	<!-- セット名 -->
-	<p class="text-base font-bold text-on-surface">{eventSet.label}</p>
-
 	<!-- 作者行 -->
-	<div class="flex items-center gap-2">
-		<div class="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-container-highest">
-			{#if picture}
-				<img src={picture} alt="avatar" loading="lazy" class="h-full w-full object-cover" />
-			{/if}
-		</div>
-		<div class="flex min-w-0 flex-col">
-			<span class="truncate text-sm font-medium text-on-surface">{displayName}</span>
-			<span class="text-xs text-on-surface-variant"
-				>{formatAbsoluteDateFromUnix(eventSet.event.created_at)}</span
-			>
+
+	<div class="flex items-center justify-between gap-2">
+		<p class="text-base font-bold text-primary">{eventSet.label}</p>
+		<div class=" flex">
+			<div class="flex min-w-0 flex-col text-end">
+				<span class="truncate text-sm font-medium text-on-surface">{displayName}</span>
+				<span class="text-xs text-on-surface-variant"
+					>{formatAbsoluteDateFromUnix(eventSet.event.created_at)}</span
+				>
+			</div>
+			<div class="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-container-highest">
+				{#if picture}
+					<img src={picture} alt="avatar" loading="lazy" class="h-full w-full object-cover" />
+				{/if}
+			</div>
 		</div>
 	</div>
 
 	<div class="flex flex-wrap gap-1">
-		{#each eventSet.emojiTags as [, shortcode, url], i (i)}
+		{#each visibleEmojis as [, shortcode, url], i (i)}
 			<div class="h-8 w-8 overflow-hidden rounded bg-surface-container-high" title={shortcode}>
 				<img src={url} alt={shortcode} loading="lazy" class="h-full w-full object-contain" />
 			</div>
 		{/each}
+		{#if !showAllEmojis && hiddenCount > 0}
+			<button
+				class="flex h-8 items-center rounded bg-surface-container-high px-2 text-xs text-on-surface-variant hover:bg-surface-container-highest"
+				onclick={() => (showAllEmojis = true)}
+			>
+				+{hiddenCount}
+			</button>
+		{:else if showAllEmojis && hiddenCount > 0}
+			<button
+				class="flex h-8 items-center rounded bg-surface-container-high px-2 text-xs text-on-surface-variant hover:bg-surface-container-highest"
+				onclick={() => (showAllEmojis = false)}
+			>
+				折りたたむ
+			</button>
+		{/if}
 	</div>
 
 	<!-- アクション -->

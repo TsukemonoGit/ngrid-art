@@ -6,7 +6,8 @@
 </script>
 
 <a
-	href={isHome ? resolve('/emoji-sets') : resolve('/')}
+	// eslint-disable-next-line svelte/no-navigation-without-resolve
+	href={isHome ? resolve('/emoji-sets') : '/'}
 	class="rounded-full border border-current bg-transparent px-4 py-1.5 text-sm"
 >
 	{isHome ? 'Emoji Sets →' : '← Home'}

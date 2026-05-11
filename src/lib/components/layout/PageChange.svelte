@@ -1,24 +1,35 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { Grip, PenTool } from '@lucide/svelte';
+	import { Grip, PenTool, BookMarked } from '@lucide/svelte';
+	import { isMobile } from '$lib/stores/user';
 
-	const isHome = $derived(page.url.pathname === '/');
+	const navItems = [
+		{ href: '/', label: 'Home', Icon: PenTool },
+		{ href: '/emoji-sets', label: 'Emoji Sets', Icon: Grip },
+		{ href: '/my-sets', label: 'My Sets', Icon: BookMarked }
+	] as const;
+
+	function isActive(href: string): boolean {
+		if (href === '/') return page.url.pathname === '/';
+		return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
+	}
 </script>
 
-{#if isHome}
-	<a
-		href={resolve('/emoji-sets')}
-		class="flex items-center gap-1 rounded-full border border-current bg-transparent px-4 py-1.5 text-sm"
-	>
-		<Grip size="20" />Emoji Sets
-	</a>
-{:else}
-	<a
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		href="/"
-		class="flex items-center gap-1 rounded-full border border-current bg-transparent px-4 py-1.5 text-sm"
-	>
-		<PenTool size="20" />Home
-	</a>
-{/if}
+<nav class="flex gap-1">
+	{#each navItems as { href, label, Icon } (href)}
+		<a
+			href={resolve(href)}
+			class="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors {isActive(
+				href
+			)
+				? 'bg-primary text-on-primary'
+				: 'border border-current bg-transparent'}"
+		>
+			<Icon size="20" />
+			{#if !isMobile.value}
+				<span>{label}</span>
+			{/if}
+		</a>
+	{/each}
+</nav>

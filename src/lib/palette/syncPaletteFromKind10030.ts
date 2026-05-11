@@ -9,6 +9,7 @@ type SyncPaletteOptions = {
 	backfillMissing?: boolean;
 };
 
+// 絵文字ショートコードを比較しやすい形式に正規化する。
 function normalizeShortcode(value: string): string {
 	const normalized = value
 		.toLowerCase()
@@ -19,6 +20,20 @@ function normalizeShortcode(value: string): string {
 	return normalized || 'emoji';
 }
 
+// 文字列から短い固定長サフィックスを作るためのハッシュ値を生成する。
+/**
+FNV-1a 32bit という軽量ハッシュ手法で作っています。流れは次の通りです。
+
+1. 初期値を 0x811c9dc5 に設定  
+2. 文字列を 1 文字ずつ処理して、各文字コードを XOR  
+3. 毎回 0x01000193 を掛ける（Math.imul で 32bit 整数乗算）  
+4. 最後に符号なし 32bit に変換（hash >>> 0）  
+5. それを base36 文字列化し、4文字にそろえる（padStart と slice）
+
+この結果、同じ入力なら同じ 4 文字サフィックスが必ず出るので、衝突回避の suffix として使えます。  
+ただし 4 文字固定なので、暗号用途ではなく「短く安定した識別子」用途です。
+
+*/
 function hashBase36_4(value: string): string {
 	// FNV-1a 32bit hash (deterministic and lightweight)
 	let hash = 0x811c9dc5;
@@ -31,7 +46,10 @@ function hashBase36_4(value: string): string {
 	return unsigned.toString(36).padStart(4, '0').slice(0, 4);
 }
 
+// セクション全体の絵文字を走査し、Map でベース短縮名の出現回数を集計したうえで衝突を解決する。
+// 衝突時は「正規化した shortcode + ref/url 由来の4桁ハッシュ」を使い、さらに Set で最終値の重複を防ぐ。
 function resolveShortcodeCollisions(sections: PaletteSection[]): PaletteSection[] {
+	// base shortcode ごとの件数を事前集計して「衝突しているか」を判定できるようにする
 	const counts = new Map<string, number>();
 	for (const section of sections) {
 		for (const emoji of section.emojis) {
@@ -40,6 +58,7 @@ function resolveShortcodeCollisions(sections: PaletteSection[]): PaletteSection[
 		}
 	}
 
+	// 既に採用した最終 shortcode を保持して、末尾連番での再衝突も回避する
 	const used = new Set<string>();
 
 	return sections.map((section) => ({
@@ -48,11 +67,13 @@ function resolveShortcodeCollisions(sections: PaletteSection[]): PaletteSection[
 			const base = normalizeShortcode(emoji.originalShortcode);
 			let resolved = base;
 
+			// 同名が複数ある場合は参照元(ref)優先、なければURLを種にして決定的ハッシュを付与
 			if ((counts.get(base) ?? 0) > 1) {
 				const seed = emoji.ref ?? emoji.url;
 				resolved = `${base}_${hashBase36_4(seed)}`;
 			}
 
+			// それでも重複した場合は _2, _3... の連番を付けて必ず一意化する
 			if (used.has(resolved)) {
 				let n = 2;
 				while (used.has(`${resolved}_${n}`)) {
@@ -71,6 +92,7 @@ function resolveShortcodeCollisions(sections: PaletteSection[]): PaletteSection[
 	}));
 }
 
+// kind:10030 を起点に kind:30030 と stray emoji を統合してパレットを同期する。
 export async function syncPaletteFromKind10030(
 	k: NostrEvent,
 	options: SyncPaletteOptions = {}

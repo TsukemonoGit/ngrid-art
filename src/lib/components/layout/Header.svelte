@@ -5,10 +5,11 @@
 
 <!-- ヘッダー -->
 <header
-	class="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-2"
+	class="flex h-12 shrink-0 items-center border-b border-outline-variant bg-surface-container-low px-4 py-2"
 >
-	<h1 class="text-lg font-bold text-on-surface">Nostr Grid Art</h1>
-	<div class="flex gap-2">
-		<PageChange /><Settings />
+	<h1 class="flex-1 text-lg font-bold text-on-surface">Nostr Grid Art</h1>
+	<PageChange />
+	<div class="flex flex-1 justify-end">
+		<Settings />
 	</div>
 </header>

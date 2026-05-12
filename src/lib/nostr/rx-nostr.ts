@@ -412,6 +412,90 @@ export async function removeKind30030FromMyKind10030(atag: string): Promise<void
 	});
 }
 
+// ============================================================
+// kind:30030 の取得・投稿・削除
+// ============================================================
+
+/**
+ * 指定した pubkey の kind:30030 をすべて取得する
+ */
+export async function fetchAllKind30030FromPubkey(
+	pubkey: string
+): Promise<NostrEvent[]> {
+	return new Promise<NostrEvent[]>((resolve, reject) => {
+		const events: NostrEvent[] = [];
+		const flushes$ = new Subject<void>();
+		const rxReq = createRxBackwardReq();
+
+		const sub = rxNostr
+			.use(rxReq)
+			.pipe(uniq(flushes$))
+			.subscribe({
+				next: (packet) => {
+					events.push(packet.event);
+				},
+				error: (err) => {
+					sub.unsubscribe();
+					reject(err);
+				},
+				complete: () => {
+					sub.unsubscribe();
+					flushes$.next();
+					resolve(events.sort((a, b) => b.created_at - a.created_at));
+				}
+			});
+
+		rxReq.emit({ kinds: [30030], authors: [pubkey] });
+		rxReq.over();
+	});
+}
+
+/**
+ * kind:30030 を新規投稿する
+ */
+export async function publishKind30030(params: {
+	title: string;
+	dtag: string;
+	emojiTags: [string, string, string][];
+}): Promise<void> {
+	if (!loginUser.value) {
+		throw Error('No login user');
+	}
+
+	const tags: string[][] = [
+		['d', params.dtag],
+		['title', params.title]
+	];
+
+	for (const [shortcode, url] of params.emojiTags) {
+		tags.push(['emoji', shortcode, url]);
+	}
+
+	await publishEvent({
+		kind: 30030,
+		content: '',
+		tags
+	});
+}
+
+/**
+ * kind:5 でイベントを削除する（a タグ + e タグ両方含める）
+ */
+export async function deleteKind30030(eventId: string, atag: string): Promise<void> {
+	if (!loginUser.value) {
+		throw Error('No login user');
+	}
+
+	await publishEvent({
+		kind: 5,
+		content: '',
+		tags: [
+			['a', atag],
+			['e', eventId]
+		]
+	});
+}
+
 export async function fetchKind0ForPubkeys(pubkeys: string[]): Promise<void> {
 	// 未キャッシュ分だけ絞り込む（差分取得）
 	const missing = pubkeys.filter((pk) => !kind0Cache.value.has(pk));

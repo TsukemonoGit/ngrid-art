@@ -6,19 +6,15 @@
 	import { X, Plus, Trash2, Pencil } from '@lucide/svelte';
 	import { loginUser } from '$lib/stores/user';
 	import {
-		fetchAllKind30030FromPubkey,
+		fetchMyKind30030Sets,
 		publishKind30030,
 		deleteKind30030,
 		waitForRelayReady
 	} from '$lib/nostr/rx-nostr';
-	import { kind0Cache } from '$lib/stores/palette';
+	import { kind0Cache, mySets } from '$lib/stores/palette';
 	import { loadStorageData } from '$lib/stores/storages';
 	import { toPubhex, truncateLabel } from '$lib/utils/utils';
-	import type { EmojiSetEvent } from '$lib/types';
-	import type { Event as NostrEvent } from 'nostr-typedef';
-
 	// --- State ---
-	let mySets: EmojiSetEvent[] = $state([]);
 	let isLoading = $state(true);
 	let isCreating = $state(false);
 	let isDeletingId = $state<string | null>(null);
@@ -42,27 +38,7 @@
 
 		try {
 			isLoading = true;
-			const pubhex = toPubhex(loginUser.value);
-			const events = await fetchAllKind30030FromPubkey(pubhex);
-
-			const sets: EmojiSetEvent[] = events.map((event: NostrEvent) => {
-				const label =
-					event.tags.find((t: string[]) => t[0] === 'title')?.[1] ??
-					event.tags.find((t: string[]) => t[0] === 'd')?.[1] ??
-					'noname';
-				return {
-					event,
-					emojiTags: event.tags.filter((t: string[]) => t[0] === 'emoji') as [
-						string,
-						string,
-						string
-					][],
-					dtag: event.tags.find((t: string[]) => t[0] === 'd')?.[1] ?? '',
-					label
-				};
-			});
-
-			mySets = sets.sort((a, b) => b.event.created_at - a.event.created_at);
+			await fetchMyKind30030Sets();
 		} catch (err) {
 			console.error('Failed to fetch my sets:', err);
 			errorMessage = 'セットの読み込みに失敗しました';
@@ -70,6 +46,11 @@
 			isLoading = false;
 		}
 	}
+
+	// グローバル mySets から表示用配列を生成（created_at 降順）
+	const displayMySets = $derived.by(() => {
+		return [...mySets.value.values()].sort((a, b) => b.event.created_at - a.event.created_at);
+	});
 
 	// --- Create new set ---
 	function handleCreateDialogOpen(): void {
@@ -89,7 +70,7 @@
 			return;
 		}
 
-		if (mySets.some((s) => s.dtag === creatingDtag)) {
+		if (displayMySets.some((s) => s.dtag === creatingDtag)) {
 			errorMessage = 'この identifier は既に使用されています';
 			return;
 		}
@@ -129,7 +110,10 @@
 
 		try {
 			await deleteKind30030(targetId, targetAtag);
-			mySets = mySets.filter((s) => s.event.id !== targetId);
+			// グローバルmySetsから削除
+			const myAtag =
+				`30030:${toPubhex(loginUser.value)}:${targetAtag}` as `30030:${string}:${string}`;
+			mySets.value.delete(myAtag);
 			deleteOpen = false;
 			deleteTarget = null;
 		} catch (err) {
@@ -147,8 +131,8 @@
 	}
 
 	onMount(async () => {
-		loadStorageData();
 		await waitForRelayReady();
+		loadStorageData();
 
 		if (!loginUser.value) {
 			errorMessage = 'ログインが必要です。Nostr 拡張機能でログインしてください。';
@@ -194,7 +178,7 @@
 				nip07 に対応した拡張機能からログインしてください
 			</p>
 		</div>
-	{:else if mySets.length === 0}
+	{:else if displayMySets.length === 0}
 		<div class="flex flex-1 flex-col items-center justify-center gap-4">
 			<p class="text-lg text-on-surface-variant">まだセットがありません</p>
 			<button
@@ -207,7 +191,7 @@
 		</div>
 	{:else}
 		<div class="flex flex-col gap-3 px-4 py-4">
-			{#each mySets as set (set.event.id)}
+			{#each displayMySets as set (set.event.id)}
 				<div
 					class="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container p-3 transition-shadow hover:shadow-md"
 				>

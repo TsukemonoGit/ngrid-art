@@ -7,10 +7,11 @@
 	import { X, ArrowLeft, Plus, Trash2, Pencil, Save, CloudUpload } from '@lucide/svelte';
 	import { loginUser } from '$lib/stores/user';
 	import {
+		fetchMyKind30030Sets,
 		publishKind30030,
-		waitForRelayReady,
-		fetchAllKind30030FromPubkey
+		waitForRelayReady
 	} from '$lib/nostr/rx-nostr';
+	import { mySets } from '$lib/stores/palette';
 	import { loadStorageData } from '$lib/stores/storages';
 	import { toPubhex } from '$lib/utils/utils';
 	import { BLOSSOM_SERVER_KEY } from '$lib/constracts/storageKey';
@@ -58,7 +59,7 @@
 		{ name: 'NIP-96 (example)', url: 'https://upload.nostr.band' }
 	];
 
-	// --- Load the set by user's pubkey + identifier ---
+	// --- Load the set by identifier ---
 	async function loadSet(): Promise<void> {
 		if (!loginUser.value) {
 			errorMessage = 'ログインが必要です';
@@ -75,31 +76,23 @@
 
 		try {
 			isLoading = true;
-			const pubhex = toPubhex(loginUser.value);
-			const events = await fetchAllKind30030FromPubkey(pubhex);
 
-			for (const event of events) {
-				const dtag = (event.tags.find((t: string[]) => t[0] === 'd') as string[] | undefined)?.[1];
-				if (dtag === identifier) {
-					const label =
-						(event.tags.find((t: string[]) => t[0] === 'title') as string[] | undefined)?.[1] ??
-						dtag ??
-						'noname';
-					setEvent = {
-						event,
-						emojiTags: event.tags.filter((t: string[]) => t[0] === 'emoji') as [string, string, string][],
-						dtag: dtag ?? '',
-						label
-					};
-					break;
-				}
+			// まずmySetsから探す
+			const myAtag = `30030:${toPubhex(loginUser.value)}:${identifier}` as `30030:${string}:${string}`;
+			let found = mySets.value.get(myAtag);
+
+			// なければフェッチ
+			if (!found) {
+				await fetchMyKind30030Sets();
+				found = mySets.value.get(myAtag);
 			}
 
-			if (!setEvent) {
+			if (!found) {
 				errorMessage = 'セットが見つかりません';
 				return;
 			}
 
+			setEvent = found;
 			editingTitle = setEvent.label;
 			emojis = setEvent.emojiTags.map(([, shortcode, url]) => ({ shortcode, url }));
 

@@ -2,7 +2,7 @@
 	import {
 		kind30030Stock,
 		latestEmojisFromOthers,
-		subscriptionStartTime
+		subscriptionStartTimeOthers
 	} from '$lib/stores/palette';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Filter } from 'nostr-typedef';
@@ -52,7 +52,7 @@
 	async function fetchMore() {
 		if (isLoading) return;
 		isLoading = true;
-		filter.until = subscriptionStartTime.value;
+		filter.until = subscriptionStartTimeOthers.value;
 		console.log(filter);
 		await fetchAllKind30030FromOthers([filter], FETCHLIMIT);
 		isLoading = false;

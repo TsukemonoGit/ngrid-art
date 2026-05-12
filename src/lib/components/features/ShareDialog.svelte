@@ -14,8 +14,6 @@
 	let { open = $bindable(false) }: Props = $props();
 
 	let content = $derived(generateContent(grid.value, nullEmoji.value));
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let tags = $derived(generateTags(grid.value, nullEmoji.value));
 
 	let copied = $state(false);

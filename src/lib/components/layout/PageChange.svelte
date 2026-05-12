@@ -18,11 +18,11 @@
 
 <nav class="flex gap-1">
 	{#each navItems as { href, label, Icon } (href)}
+		{@const active = isActive(href)}
 		<a
+			title={active ? '' : `goto ${label}`}
 			href={resolve(href)}
-			class="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors {isActive(
-				href
-			)
+			class="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors {active
 				? 'bg-primary text-on-primary'
 				: 'border border-current bg-transparent'}"
 		>

@@ -9,8 +9,13 @@ import {
 } from 'rx-nostr';
 import { verifier } from '@rx-nostr/crypto';
 import { initRelays } from '$lib/constracts/nostr';
-import type { EventParameters, Filter, Event as NostrEvent } from 'nostr-typedef';
-import type { EmojiSetEvent } from '$lib/types';
+import type {
+	EventParameters,
+	Filter,
+	Event as NostrEvent,
+	ReplaceableEventSpecifier
+} from 'nostr-typedef';
+import type { EmojiSetEvent, EmojiSetEventMap } from '$lib/types';
 
 import { Subject } from 'rxjs';
 
@@ -39,6 +44,18 @@ function toEmojiSetEvent(event: NostrEvent): EmojiSetEvent {
 		dtag: event.tags.find((t) => t[0] === 'd')?.[1] ?? '',
 		label: label
 	};
+}
+
+/** atagごとにMapの値を最新にする（created_atが新しい方のみ保存） */
+function updateIfNewer(
+	map: EmojiSetEventMap,
+	atag: ReplaceableEventSpecifier,
+	event: NostrEvent
+): void {
+	const existing = map.get(atag);
+	if (!existing || event.created_at > existing.event.created_at) {
+		map.set(atag, toEmojiSetEvent(event));
+	}
 }
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
@@ -92,28 +109,18 @@ rxNostr.use(freq).subscribe({
 			case 30030: {
 				const atag = eventToAtag(pk.event);
 				const myTags = getCurrentKind10030ATags();
-				const emojiSetEvent = toEmojiSetEvent(pk.event);
 
 				// 必ずmySetsに保存（自分のデータなら）
 				if (pk.event.pubkey === loginUser.value) {
-					const existing = mySets.value.get(atag);
-					if (!existing || pk.event.created_at > existing.event.created_at) {
-						mySets.value.set(atag, emojiSetEvent);
-					}
+					updateIfNewer(mySets.value, atag, pk.event);
 				}
 
 				// 自分が登録している30030
 				if (myTags.includes(atag)) {
-					const existing = kind30030Stock.value.get(atag);
-					if (!existing || pk.event.created_at > existing.event.created_at) {
-						kind30030Stock.value.set(atag, emojiSetEvent);
-					}
+					updateIfNewer(kind30030Stock.value, atag, pk.event);
 				} else {
 					// いれてない30030（他人のデータ、または自分の未登録）
-					const existing = latestEmojisFromOthers.value.get(atag);
-					if (!existing || pk.event.created_at > existing.event.created_at) {
-						latestEmojisFromOthers.value.set(atag, emojiSetEvent);
-					}
+					updateIfNewer(latestEmojisFromOthers.value, atag, pk.event);
 				}
 
 				break;
@@ -265,10 +272,7 @@ async function fetchKind30030ChunkIntoStock(filters: Filter[]): Promise<void> {
 					}
 
 					const atag = eventToAtag(packet.event);
-					const existing = kind30030Stock.value.get(atag);
-					if (!existing || packet.event.created_at > existing.event.created_at) {
-						kind30030Stock.value.set(atag, toEmojiSetEvent(packet.event));
-					}
+					updateIfNewer(kind30030Stock.value, atag, packet.event);
 				},
 				error: (err) => {
 					sub.unsubscribe();
@@ -313,10 +317,7 @@ export async function fetchAllKind30030FromOthers(filters: Filter[], limit: numb
 		const atag = eventToAtag(event);
 		// 自分が登録済みのものは除外
 		if (myATags.includes(atag)) continue;
-		const existing = latestEmojisFromOthers.value.get(atag);
-		if (!existing || event.created_at > existing.event.created_at) {
-			latestEmojisFromOthers.value.set(atag, toEmojiSetEvent(event));
-		}
+		updateIfNewer(latestEmojisFromOthers.value, atag, event);
 	}
 }
 
@@ -478,12 +479,9 @@ export async function fetchMyKind30030Sets(): Promise<NostrEvent[]> {
 	// mySets に保存（atag ごとに最新のみ）
 	for (const event of events) {
 		const atag = eventToAtag(event);
-		const existing = mySets.value.get(atag);
-		if (!existing || event.created_at > existing.event.created_at) {
-			mySets.value.set(atag, toEmojiSetEvent(event));
-		}
+		updateIfNewer(mySets.value, atag, event);
 	}
-
+	console.log('updateIfNewer', mySets.value);
 	// 最新のイベントで subscriptionStartTimeMy を更新
 	if (events.length > 0) {
 		subscriptionStartTimeMy.value = events[events.length - 1].created_at;
@@ -494,6 +492,7 @@ export async function fetchMyKind30030Sets(): Promise<NostrEvent[]> {
 
 /**
  * kind:30030 を新規投稿する
+ * @returns 投稿されたイベント
  */
 export async function publishKind30030(params: {
 	title: string;
@@ -509,7 +508,7 @@ export async function publishKind30030(params: {
 		['title', params.title]
 	];
 
-	for (const [shortcode, url] of params.emojiTags) {
+	for (const [, shortcode, url] of params.emojiTags) {
 		tags.push(['emoji', shortcode, url]);
 	}
 
@@ -518,6 +517,8 @@ export async function publishKind30030(params: {
 		content: '',
 		tags
 	});
+
+	return;
 }
 
 /**

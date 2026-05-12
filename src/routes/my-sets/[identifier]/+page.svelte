@@ -2,25 +2,21 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 	import { Dialog } from 'bits-ui';
 	import { X, ArrowLeft, Plus, Trash2, Pencil, Save, CloudUpload } from '@lucide/svelte';
-	import { loginUser } from '$lib/stores/user';
-	import {
-		fetchMyKind30030Sets,
-		publishKind30030,
-		waitForRelayReady
-	} from '$lib/nostr/rx-nostr';
-	import { mySets } from '$lib/stores/palette';
-	import { loadStorageData } from '$lib/stores/storages';
-	import { toPubhex } from '$lib/utils/utils';
+
+	import { publishKind30030 } from '$lib/nostr/rx-nostr';
 	import { BLOSSOM_SERVER_KEY } from '$lib/constracts/storageKey';
 	import type { EmojiSetEvent } from '$lib/types';
-	import type { Event as NostrEvent } from 'nostr-typedef';
+	import { mySets } from '$lib/stores/palette';
+	import { loginUser } from '$lib/stores/user';
 
 	// --- State ---
-	let setEvent: EmojiSetEvent | null = $state(null);
-	let isLoading = $state(true);
+
+	let setEvent: EmojiSetEvent | undefined = $derived(
+		mySets.value.get(`30030:${loginUser.value}:${page.params.identifier}`)
+	);
+	$inspect(setEvent);
 	let isSaving = $state(false);
 	let errorMessage = $state<string | null>(null);
 
@@ -29,13 +25,17 @@
 	let isEditingTitle = $state(false);
 
 	// Emoji list
-	let emojis: { shortcode: string; url: string }[] = $state([]);
+	let emojis: { shortcode: string; url: string }[] | undefined = $derived(
+		setEvent?.emojiTags.map((tag) => {
+			return { shortcode: tag[1], url: tag[2] };
+		})
+	);
+	$inspect(emojis);
 
 	// Add emoji via URL
 	let newEmojiShortcode = $state('');
 	let newEmojiUrl = $state('');
 	let newEmojiPreview = $state<string | null>(null);
-	let isAddingEmoji = $state(false);
 
 	// File upload
 	let selectedFile: File | null = $state(null);
@@ -59,57 +59,14 @@
 		{ name: 'NIP-96 (example)', url: 'https://upload.nostr.band' }
 	];
 
-	// --- Load the set by identifier ---
-	async function loadSet(): Promise<void> {
-		if (!loginUser.value) {
-			errorMessage = 'ログインが必要です';
-			isLoading = false;
-			return;
-		}
-
-		const identifier = page.url.pathname.split('/').pop() ?? '';
-		if (!identifier) {
-			errorMessage = 'identifier が指定されていません';
-			isLoading = false;
-			return;
-		}
-
-		try {
-			isLoading = true;
-
-			// まずmySetsから探す
-			const myAtag = `30030:${toPubhex(loginUser.value)}:${identifier}` as `30030:${string}:${string}`;
-			let found = mySets.value.get(myAtag);
-
-			// なければフェッチ
-			if (!found) {
-				await fetchMyKind30030Sets();
-				found = mySets.value.get(myAtag);
-			}
-
-			if (!found) {
-				errorMessage = 'セットが見つかりません';
-				return;
-			}
-
-			setEvent = found;
-			editingTitle = setEvent.label;
-			emojis = setEvent.emojiTags.map(([, shortcode, url]) => ({ shortcode, url }));
-
-			// Load saved blossom server
-			const savedServer = localStorage.getItem(BLOSSOM_SERVER_KEY);
-			if (savedServer) selectedServer = savedServer;
-		} catch (err) {
-			console.error('Failed to load set:', err);
-			errorMessage = 'セットの読み込みに失敗しました';
-		} finally {
-			isLoading = false;
-		}
-	}
-
 	// --- Title editing ---
-	function startEditTitle(): void { isEditingTitle = true; }
-	function cancelEditTitle(): void { isEditingTitle = false; editingTitle = setEvent?.label ?? ''; }
+	function startEditTitle(): void {
+		isEditingTitle = true;
+	}
+	function cancelEditTitle(): void {
+		isEditingTitle = false;
+		editingTitle = setEvent?.label ?? '';
+	}
 
 	// --- Emoji preview ---
 	function handleEmojiUrlInput(url: string): void {
@@ -129,7 +86,7 @@
 			errorMessage = 'shortcode は英数字とアンダースコアで、文字から始める必要があります';
 			return;
 		}
-		if (emojis.some((e) => e.shortcode === newEmojiShortcode.trim())) {
+		if (emojis!.some((e) => e.shortcode === newEmojiShortcode.trim())) {
 			errorMessage = 'この shortcode は既に使用されています';
 			return;
 		}
@@ -168,15 +125,13 @@
 			if (!uploadedUrl) throw Error('No URL returned from upload');
 
 			// Auto-generate shortcode
-			let shortcode = selectedFile.name
-				.replace(/\.[^.]+$/, '')
-				.replace(/[^a-zA-Z0-9_]/g, '_');
+			let shortcode = selectedFile.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_]/g, '_');
 			if (!/^[a-zA-Z_]/.test(shortcode)) shortcode = 'emoji_' + shortcode;
 
 			// Deduplicate
 			let finalShortcode = shortcode;
 			let counter = 1;
-			while (emojis.some((e) => e.shortcode === finalShortcode)) {
+			while (emojis!.some((e) => e.shortcode === finalShortcode)) {
 				finalShortcode = `${shortcode}_${counter}`;
 				counter++;
 			}
@@ -194,7 +149,7 @@
 
 	// --- Add emoji to list ---
 	function addEmoji(shortcode: string, url: string): void {
-		emojis.push({ shortcode, url });
+		emojis!.push({ shortcode, url });
 		newEmojiShortcode = '';
 		newEmojiUrl = '';
 		newEmojiPreview = null;
@@ -204,9 +159,9 @@
 	// --- Edit emoji ---
 	function startEditEmoji(idx: number): void {
 		editingEmojiIdx = idx;
-		editShortcode = emojis[idx].shortcode;
-		editUrl = emojis[idx].url;
-		editPreview = emojis[idx].url;
+		editShortcode = emojis![idx].shortcode;
+		editUrl = emojis![idx].url;
+		editPreview = emojis![idx].url;
 	}
 	function cancelEditEmoji(): void {
 		editingEmojiIdx = null;
@@ -220,13 +175,13 @@
 			errorMessage = 'shortcode と URL を入力してください';
 			return;
 		}
-		const otherShortcodes = emojis.filter((_, i) => i !== editingEmojiIdx).map((e) => e.shortcode);
+		const otherShortcodes = emojis!.filter((_, i) => i !== editingEmojiIdx).map((e) => e.shortcode);
 		if (otherShortcodes.includes(editShortcode.trim())) {
 			errorMessage = 'この shortcode は既に使用されています';
 			return;
 		}
-		emojis[editingEmojiIdx].shortcode = editShortcode.trim();
-		emojis[editingEmojiIdx].url = editUrl.trim();
+		emojis![editingEmojiIdx].shortcode = editShortcode.trim();
+		emojis![editingEmojiIdx].url = editUrl.trim();
 		editingEmojiIdx = null;
 		errorMessage = null;
 	}
@@ -238,7 +193,7 @@
 	}
 	function confirmDeleteEmoji(): void {
 		if (deleteEmojiIdx === null) return;
-		emojis.splice(deleteEmojiIdx, 1);
+		emojis!.splice(deleteEmojiIdx, 1);
 		deleteEmojiIdx = null;
 		deleteOpen = false;
 	}
@@ -246,18 +201,18 @@
 	// --- Reorder ---
 	function moveEmojiUp(idx: number): void {
 		if (idx <= 0) return;
-		[emojis[idx - 1], emojis[idx]] = [emojis[idx], emojis[idx - 1]];
+		[emojis![idx - 1], emojis![idx]] = [emojis![idx], emojis![idx - 1]];
 	}
 	function moveEmojiDown(idx: number): void {
-		if (idx >= emojis.length - 1) return;
-		[emojis[idx + 1], emojis[idx]] = [emojis[idx], emojis[idx + 1]];
+		if (idx >= emojis!.length - 1) return;
+		[emojis![idx + 1], emojis![idx]] = [emojis![idx], emojis![idx + 1]];
 	}
 
 	// --- Save and publish ---
 	async function handleSave(): Promise<void> {
 		if (!setEvent) return;
 
-		const shortcodes = emojis.map((e) => e.shortcode);
+		const shortcodes = emojis!.map((e) => e.shortcode);
 		if (new Set(shortcodes).size !== shortcodes.length) {
 			errorMessage = 'duplicate shortcode があります';
 			return;
@@ -267,7 +222,11 @@
 		errorMessage = null;
 
 		try {
-			const emojiTags: [string, string, string][] = emojis.map((e) => ['emoji', e.shortcode, e.url]);
+			const emojiTags: [string, string, string][] = emojis!.map((e) => [
+				'emoji',
+				e.shortcode,
+				e.url
+			]);
 
 			await publishKind30030({
 				title: editingTitle.trim() || setEvent.label,
@@ -276,7 +235,9 @@
 			});
 
 			errorMessage = '保存しました！';
-			setTimeout(() => { errorMessage = null; }, 2000);
+			setTimeout(() => {
+				errorMessage = null;
+			}, 2000);
 		} catch (err) {
 			console.error('Failed to save:', err);
 			errorMessage = '保存に失敗しました';
@@ -284,13 +245,6 @@
 			isSaving = false;
 		}
 	}
-
-	// --- Init ---
-	onMount(async () => {
-		loadStorageData();
-		await waitForRelayReady();
-		await loadSet();
-	});
 </script>
 
 <div class="flex min-h-full flex-col overflow-y-auto">
@@ -313,11 +267,8 @@
 	{/if}
 
 	<!-- Main Content -->
-	{#if isLoading}
-		<div class="flex flex-1 items-center justify-center">
-			<p class="text-on-surface-variant">読み込み中...</p>
-		</div>
-	{:else if setEvent}
+
+	{#if setEvent}
 		<div class="flex flex-col gap-4 px-4 py-4">
 			<!-- Title Editing -->
 			<div class="flex items-center gap-2">
@@ -375,7 +326,9 @@
 								src={newEmojiPreview}
 								alt="preview"
 								class="h-8 w-8 object-contain"
-								onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+								onerror={(e) => {
+									(e.target as HTMLImageElement).style.display = 'none';
+								}}
 							/>
 							<span class="truncate text-xs text-on-surface-variant">{newEmojiPreview}</span>
 						</div>
@@ -413,7 +366,7 @@
 						class="rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
 					>
 						<option value="">サーバーを選択</option>
-						{#each BLOSSOM_SERVERS as server}
+						{#each BLOSSOM_SERVERS as server (server.name)}
 							<option value={server.url}>{server.name} ({server.url})</option>
 						{/each}
 					</select>
@@ -427,7 +380,9 @@
 					class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
 				>
 					{#if isUploading}
-						<div class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+						<div
+							class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></div>
 						アップロード中...
 					{:else}
 						<CloudUpload size="16" />
@@ -439,9 +394,9 @@
 			<!-- Emoji List -->
 			<div class="rounded-xl border border-outline-variant bg-surface-container p-4">
 				<h3 class="mb-3 text-sm font-semibold text-on-surface-variant">
-					絵文字リスト ({emojis.length})
+					絵文字リスト ({emojis!.length})
 				</h3>
-				{#if emojis.length === 0}
+				{#if emojis!.length === 0}
 					<p class="py-4 text-center text-sm text-on-surface-variant/60">
 						絵文字が登録されていません
 					</p>
@@ -451,35 +406,72 @@
 							<div class="flex items-center gap-2 rounded-lg bg-surface-container-high p-2">
 								<!-- Order controls -->
 								<div class="flex flex-col gap-0.5">
-									<button onclick={() => moveEmojiUp(idx)} disabled={idx === 0}
-										class="rounded p-0.5 text-xs text-on-surface-variant hover:bg-surface-container disabled:opacity-30">▲</button>
-									<button onclick={() => moveEmojiDown(idx)} disabled={idx === emojis.length - 1}
-										class="rounded p-0.5 text-xs text-on-surface-variant hover:bg-surface-container disabled:opacity-30">▼</button>
+									<button
+										onclick={() => moveEmojiUp(idx)}
+										disabled={idx === 0}
+										class="rounded p-0.5 text-xs text-on-surface-variant hover:bg-surface-container disabled:opacity-30"
+										>▲</button
+									>
+									<button
+										onclick={() => moveEmojiDown(idx)}
+										disabled={idx === emojis!.length - 1}
+										class="rounded p-0.5 text-xs text-on-surface-variant hover:bg-surface-container disabled:opacity-30"
+										>▼</button
+									>
 								</div>
 
 								{#if editingEmojiIdx === idx}
 									<!-- Edit mode -->
 									<div class="flex flex-1 flex-col gap-1.5">
-										<input bind:value={editShortcode}
-											class="w-28 rounded border border-outline-variant bg-surface-container px-2 py-1 text-sm text-on-surface outline-none focus:border-primary" />
-										<input bind:value={editUrl} type="url"
+										<input
+											bind:value={editShortcode}
+											class="w-28 rounded border border-outline-variant bg-surface-container px-2 py-1 text-sm text-on-surface outline-none focus:border-primary"
+										/>
+										<input
+											bind:value={editUrl}
+											type="url"
 											oninput={(e) => handleEditUrlInput((e.target as HTMLInputElement).value)}
-											class="flex-1 rounded border border-outline-variant bg-surface-container px-2 py-1 text-sm text-on-surface outline-none focus:border-primary" />
+											class="flex-1 rounded border border-outline-variant bg-surface-container px-2 py-1 text-sm text-on-surface outline-none focus:border-primary"
+										/>
 										{#if editPreview}
 											<img src={editPreview} alt="preview" class="h-6 w-6 object-contain" />
 										{/if}
 									</div>
-									<button onclick={saveEditEmoji} class="rounded p-1.5 text-success hover:bg-success-container" title="保存"><Save size="16" /></button>
-									<button onclick={cancelEditEmoji} class="rounded p-1.5 text-on-surface-variant hover:bg-surface-container" title="キャンセル"><X size="16" /></button>
+									<button
+										onclick={saveEditEmoji}
+										class="text-success hover:bg-success-container rounded p-1.5"
+										title="保存"><Save size="16" /></button
+									>
+									<button
+										onclick={cancelEditEmoji}
+										class="rounded p-1.5 text-on-surface-variant hover:bg-surface-container"
+										title="キャンセル"><X size="16" /></button
+									>
 								{:else}
 									<!-- View mode -->
 									<div class="h-10 w-10 overflow-hidden rounded bg-surface-container">
-										<img src={emoji.url} alt={emoji.shortcode} class="h-full w-full object-contain"
-											onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+										<img
+											src={emoji.url}
+											alt={emoji.shortcode}
+											class="h-full w-full object-contain"
+											onerror={(e) => {
+												(e.target as HTMLImageElement).style.display = 'none';
+											}}
+										/>
 									</div>
-									<span class="min-w-0 flex-1 truncate text-sm text-on-surface">:{emoji.shortcode}:</span>
-									<button onclick={() => startEditEmoji(idx)} class="rounded p-1.5 text-on-surface-variant hover:bg-surface-container" title="修正"><Pencil size="16" /></button>
-									<button onclick={() => openDeleteEmoji(idx)} class="rounded p-1.5 text-error hover:bg-error-container" title="削除"><Trash2 size="16" /></button>
+									<span class="min-w-0 flex-1 truncate text-sm text-on-surface"
+										>:{emoji.shortcode}:</span
+									>
+									<button
+										onclick={() => startEditEmoji(idx)}
+										class="rounded p-1.5 text-on-surface-variant hover:bg-surface-container"
+										title="修正"><Pencil size="16" /></button
+									>
+									<button
+										onclick={() => openDeleteEmoji(idx)}
+										class="rounded p-1.5 text-error hover:bg-error-container"
+										title="削除"><Trash2 size="16" /></button
+									>
 								{/if}
 							</div>
 						{/each}
@@ -498,7 +490,6 @@
 				</button>
 			</div>
 		</div>
-
 	{:else}
 		<div class="flex flex-1 flex-col items-center justify-center gap-4">
 			<p class="text-lg text-on-surface-variant">{errorMessage ?? 'セットが見つかりません'}</p>
@@ -522,18 +513,28 @@
 			>
 				<div class="mb-4 flex items-center justify-between">
 					<Dialog.Title class="text-lg font-semibold text-on-surface">絵文字を削除</Dialog.Title>
-					<Dialog.Close class="rounded-full p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container-high" aria-label="閉じる"><X size={20} /></Dialog.Close>
+					<Dialog.Close
+						class="rounded-full p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container-high"
+						aria-label="閉じる"><X size={20} /></Dialog.Close
+					>
 				</div>
 				{#if deleteEmojiIdx !== null}
 					<p class="text-sm text-on-surface">
-						<strong>:{emojis[deleteEmojiIdx]?.shortcode}:</strong> を削除してもよろしいですか？
+						<strong>:{emojis![deleteEmojiIdx]?.shortcode}:</strong> を削除してもよろしいですか？
 					</p>
 				{/if}
 				<div class="flex justify-end gap-2 pt-4">
 					<Dialog.Close>
-						<button class="rounded-lg px-4 py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container-high">キャンセル</button>
+						<button
+							class="rounded-lg px-4 py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container-high"
+							>キャンセル</button
+						>
 					</Dialog.Close>
-					<button onclick={confirmDeleteEmoji} class="rounded-lg bg-error px-6 py-2 text-sm font-medium text-on-error transition-opacity hover:opacity-90">削除する</button>
+					<button
+						onclick={confirmDeleteEmoji}
+						class="rounded-lg bg-error px-6 py-2 text-sm font-medium text-on-error transition-opacity hover:opacity-90"
+						>削除する</button
+					>
 				</div>
 			</Dialog.Content>
 		</Dialog.Portal>

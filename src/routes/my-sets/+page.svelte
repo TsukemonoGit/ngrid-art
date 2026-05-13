@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { Dialog } from 'bits-ui';
 	import { X, Plus, Trash2, Pencil } from '@lucide/svelte';
-	import { loginUser } from '$lib/stores/user';
-	import { publishKind30030, deleteKind30030, waitForRelayReady } from '$lib/nostr/rx-nostr';
+	import { isLoading, loginUser } from '$lib/stores/user';
+	import { publishKind30030, deleteKind30030 } from '$lib/nostr/rx-nostr';
 	import { kind0Cache, mySets } from '$lib/stores/palette';
 	import { toPubhex, truncateLabel } from '$lib/utils/utils';
 	// --- State ---
@@ -128,17 +128,10 @@
 	{/if}
 
 	<!-- Main Content -->
-	{#await waitForRelayReady()}
-		now loading
-	{:then}
-		{#if !loginUser.value}
-			<div class="flex flex-1 flex-col items-center justify-center gap-4">
-				<p class="text-lg text-on-surface-variant">Nostr にログインしてください</p>
-				<p class="text-sm text-on-surface-variant/60">
-					nip07 に対応した拡張機能からログインしてください
-				</p>
-			</div>
-			<!-- {:else if displayMySets.length === 0}
+	{#if displayMySets.length === 0}
+		{#if isLoading.value}
+			now loading
+		{:else}
 			<div class="flex flex-1 flex-col items-center justify-center gap-4">
 				<p class="text-lg text-on-surface-variant">まだセットがありません</p>
 				<button
@@ -148,74 +141,71 @@
 					<Plus size="18" />
 					セットを作成する
 				</button>
-			</div> -->
-		{:else}
-			<div class="flex flex-col gap-3 px-4 py-4">
-				{#each displayMySets as set (set.event.id)}
-					<div
-						class="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container p-3 transition-shadow hover:shadow-md"
-					>
-						<!-- Set Info -->
-						<button
-							onclick={() => navigateToEdit(set.dtag)}
-							class="flex flex-1 cursor-pointer items-center gap-3 text-left"
-						>
-							<div class="flex min-w-0 flex-1 flex-col">
-								<span class="truncate text-base font-semibold text-on-surface"
-									>{truncateLabel(set.label, 20, 4)}</span
-								>
-								<span class="truncate text-xs text-on-surface-variant">
-									identifier: {set.dtag}
-								</span>
-							</div>
-							<!-- Avatar -->
-							{#if kind0Cache.value.has(set.event.pubkey)}
-								{@const cache = kind0Cache.value.get(set.event.pubkey)!}
-								{@const profile = JSON.parse(cache.content || '{}')}
-								<div
-									class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-surface-container-high"
-								>
-									<img src={profile.picture} alt="" class="h-full w-full object-cover" />
-								</div>
-							{/if}
-						</button>
-
-						<!-- Actions -->
-						<div class="ml-3 flex shrink-0 items-center gap-1">
-							<button
-								onclick={() => navigateToEdit(set.dtag)}
-								class="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-								aria-label="編集"
-								title="編集"
-							>
-								<Pencil size="18" />
-							</button>
-							<button
-								onclick={() =>
-									openDeleteDialog(
-										set.label,
-										`30030:${set.event.pubkey}:${set.dtag}`,
-										set.event.id
-									)}
-								disabled={isDeletingId === set.event.id}
-								class="rounded-full p-2 text-error transition-colors hover:bg-error-container disabled:opacity-50"
-								aria-label="削除"
-								title="削除"
-							>
-								{#if isDeletingId === set.event.id}
-									<div
-										class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-									></div>
-								{:else}
-									<Trash2 size="18" />
-								{/if}
-							</button>
-						</div>
-					</div>
-				{/each}
 			</div>
 		{/if}
-	{/await}
+	{:else}
+		<div class="flex flex-col gap-3 px-4 py-4">
+			{#each displayMySets as set (set.event.id)}
+				<div
+					class="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container p-3 transition-shadow hover:shadow-md"
+				>
+					<!-- Set Info -->
+					<button
+						onclick={() => navigateToEdit(set.dtag)}
+						class="flex flex-1 cursor-pointer items-center gap-3 text-left"
+					>
+						<div class="flex min-w-0 flex-1 flex-col">
+							<span class="truncate text-base font-semibold text-on-surface"
+								>{truncateLabel(set.label, 20, 4)}</span
+							>
+							<span class="truncate text-xs text-on-surface-variant">
+								identifier: {set.dtag}
+							</span>
+						</div>
+						<!-- Avatar -->
+						{#if kind0Cache.value.has(set.event.pubkey)}
+							{@const cache = kind0Cache.value.get(set.event.pubkey)!}
+							{@const profile = JSON.parse(cache.content || '{}')}
+							<div
+								class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-surface-container-high"
+							>
+								<img src={profile.picture} alt="" class="h-full w-full object-cover" />
+							</div>
+						{/if}
+					</button>
+
+					<!-- Actions -->
+					<div class="ml-3 flex shrink-0 items-center gap-1">
+						<button
+							onclick={() => navigateToEdit(set.dtag)}
+							class="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+							aria-label="編集"
+							title="編集"
+						>
+							<Pencil size="18" />
+						</button>
+						<button
+							onclick={() =>
+								openDeleteDialog(set.label, `30030:${set.event.pubkey}:${set.dtag}`, set.event.id)}
+							disabled={isDeletingId === set.event.id}
+							class="rounded-full p-2 text-error transition-colors hover:bg-error-container disabled:opacity-50"
+							aria-label="削除"
+							title="削除"
+						>
+							{#if isDeletingId === set.event.id}
+								<div
+									class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+								></div>
+							{:else}
+								<Trash2 size="18" />
+							{/if}
+						</button>
+					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
 	<!-- Create Dialog -->
 	<Dialog.Root bind:open={createOpen}>
 		<Dialog.Portal>

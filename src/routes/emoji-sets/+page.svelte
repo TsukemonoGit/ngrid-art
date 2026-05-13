@@ -16,6 +16,7 @@
 	} from '$lib/nostr/rx-nostr';
 	import { FETCHLIMIT } from '$lib/constracts/nostr';
 	import { kind10030 } from '$lib/stores/storages';
+	import { isLoading } from '$lib/stores/user';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
@@ -42,7 +43,6 @@
 
 	const PAGE_SIZE = 50;
 	let displayCount = $state(PAGE_SIZE);
-	let isLoading = $state(false);
 
 	// 表示するイベント（手元データの先頭 displayCount 件だけ）
 	const visibleEvents = $derived(kind30030Events.slice(0, displayCount));
@@ -50,12 +50,12 @@
 	const hasMoreLocal = $derived(displayCount + PAGE_SIZE < kind30030Events.length);
 
 	async function fetchMore() {
-		if (isLoading) return;
-		isLoading = true;
+		if (isLoading.value) return;
+		isLoading.value = true;
 		filter.until = subscriptionStartTimeOthers.value;
 		console.log(filter);
 		await fetchAllKind30030FromOthers([filter], FETCHLIMIT);
-		isLoading = false;
+		isLoading.value = false;
 	}
 
 	async function handleLoadMore() {
@@ -89,10 +89,10 @@
 <div class=" overflow-y-auto">
 	{#if kind30030Events.length == 0}
 		<!--TODO: loadingdesign-->
-		{#if isLoading}
+		{#if isLoading.value}
 			loading...
 		{:else}
-			now loading
+			nodata
 		{/if}
 	{:else}
 		<!--表示させるデータは kind30030Events。なかみの表示はあとでつくる。-->
@@ -106,10 +106,10 @@
 		<div class="flex justify-center py-4">
 			<button
 				onclick={handleLoadMore}
-				disabled={isLoading}
+				disabled={isLoading.value}
 				class="rounded bg-surface-container px-4 py-2 text-on-surface disabled:opacity-50"
 			>
-				{#if isLoading}
+				{#if isLoading.value}
 					読み込み中...
 				{:else}
 					もっと読む

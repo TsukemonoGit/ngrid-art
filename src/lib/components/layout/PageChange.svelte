@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { Grip, PenTool, BookMarked } from '@lucide/svelte';
+	import { Grip, PenTool, Pickaxe } from '@lucide/svelte';
 	import { isMobile } from '$lib/stores/user';
 
 	const navItems = [
 		{ href: '/', label: 'Home', Icon: PenTool },
 		{ href: '/emoji-sets', label: 'Emoji Sets', Icon: Grip },
-		{ href: '/my-sets', label: 'My Sets', Icon: BookMarked }
+		{ href: '/my-sets', label: 'My Sets', Icon: Pickaxe }
 	] as const;
 
 	function isActive(href: string): boolean {

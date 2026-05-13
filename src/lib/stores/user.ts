@@ -7,3 +7,5 @@ export const loginUser = createGlobalState<string>('');
 //もしくは、新しいでーたを受信しました。更新しますか。のうぃんどうを出してから更新するか。
 
 export const isMobile = createGlobalState<boolean>(false);
+
+export const isLoading = createGlobalState<boolean>(false);

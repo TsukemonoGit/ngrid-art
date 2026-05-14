@@ -353,7 +353,7 @@
 				</div>
 			</div>
 
-			<!-- File Upload -->
+			<!-- File Upload 
 			<div class="rounded-xl border border-outline-variant bg-surface-container p-4">
 				<h3 class="mb-3 text-sm font-semibold text-on-surface-variant">ファイルアップロード</h3>
 				<input
@@ -400,7 +400,7 @@
 						アップロード
 					{/if}
 				</button>
-			</div>
+			</div>-->
 
 			<!-- Emoji List -->
 			<div class="rounded-xl border border-outline-variant bg-surface-container p-4">
@@ -413,7 +413,7 @@
 					</p>
 				{:else}
 					<div class="flex flex-col gap-2">
-						{#each emojis as emoji, idx (idx)}
+						{#each emojis as emoji, idx (emoji.shortcode)}
 							<div class="flex items-center gap-2 rounded-lg bg-surface-container-high p-2">
 								<!-- Order controls -->
 								<div class="flex flex-col gap-0.5">

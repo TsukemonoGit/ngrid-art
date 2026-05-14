@@ -84,10 +84,6 @@
 
 		try {
 			await deleteKind30030(targetId, targetAtag);
-			// グローバルmySetsから削除
-			const myAtag =
-				`30030:${toPubhex(loginUser.value)}:${targetAtag}` as `30030:${string}:${string}`;
-			mySets.value.delete(myAtag);
 			deleteOpen = false;
 			deleteTarget = null;
 		} catch (err) {

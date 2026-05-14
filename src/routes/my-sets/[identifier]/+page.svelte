@@ -366,16 +366,18 @@
 					</div>
 				{/if}
 				<div class="mb-3 flex flex-col gap-1.5">
-					<label class="text-xs font-medium text-on-surface-variant">アップロード先サーバー</label>
-					<select
-						bind:value={selectedServer}
-						class="rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+					<label class="text-xs font-medium text-on-surface-variant"
+						>アップロード先サーバー
+						<select
+							bind:value={selectedServer}
+							class="rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
+						>
+							<option value="">サーバーを選択</option>
+							{#each BLOSSOM_SERVERS as server (server.name)}
+								<option value={server.url}>{server.name} ({server.url})</option>
+							{/each}
+						</select></label
 					>
-						<option value="">サーバーを選択</option>
-						{#each BLOSSOM_SERVERS as server (server.name)}
-							<option value={server.url}>{server.name} ({server.url})</option>
-						{/each}
-					</select>
 					<p class="text-xs text-on-surface-variant/50">
 						選択したサーバー設定は次回から自動的に復元されます
 					</p>

@@ -3,10 +3,13 @@
 	import { goto } from '$app/navigation';
 	import { Dialog } from 'bits-ui';
 	import { X, Plus, Trash2, Pencil } from '@lucide/svelte';
-	import { isLoading, loginUser } from '$lib/stores/user';
+	import { loginUser } from '$lib/stores/user';
 	import { publishKind30030, deleteKind30030 } from '$lib/nostr/rx-nostr';
 	import { kind0Cache, mySets } from '$lib/stores/palette';
-	import { toPubhex, truncateLabel } from '$lib/utils/utils';
+	import { truncateLabel } from '$lib/utils/utils';
+	import { getContext } from 'svelte';
+	const mySetsLoading = getContext<{ value: boolean }>('mySetsLoading');
+
 	// --- State ---
 	let isCreating = $state(false);
 	let isDeletingId = $state<string | null>(null);
@@ -125,7 +128,7 @@
 
 	<!-- Main Content -->
 	{#if displayMySets.length === 0}
-		{#if isLoading.value}
+		{#if mySetsLoading.value}
 			now loading
 		{:else}
 			<div class="flex flex-1 flex-col items-center justify-center gap-4">
@@ -226,22 +229,26 @@
 				<div class="flex flex-col gap-4">
 					<!-- Title -->
 					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium text-on-surface-variant">タイトル *</label>
-						<input
-							bind:value={creatingTitle}
-							placeholder="セット名を入力"
-							class="w-full rounded-lg border border-outline-variant bg-surface-container px-3 py-2.5 text-sm text-on-surface outline-none placeholder:text-on-surface-variant/40 focus:border-primary"
-						/>
+						<label class="text-sm font-medium text-on-surface-variant"
+							>タイトル *
+							<input
+								bind:value={creatingTitle}
+								placeholder="セット名を入力"
+								class="w-full rounded-lg border border-outline-variant bg-surface-container px-3 py-2.5 text-sm text-on-surface outline-none placeholder:text-on-surface-variant/40 focus:border-primary"
+							/></label
+						>
 					</div>
 
 					<!-- Identifier -->
 					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium text-on-surface-variant">identifier</label>
-						<input
-							bind:value={creatingDtag}
-							placeholder="英数字、ハイフン、アンダースコア"
-							class="w-full rounded-lg border border-outline-variant bg-surface-container px-3 py-2.5 text-sm text-on-surface outline-none placeholder:text-on-surface-variant/40 focus:border-primary"
-						/>
+						<label class="text-sm font-medium text-on-surface-variant"
+							>identifier
+							<input
+								bind:value={creatingDtag}
+								placeholder="英数字、ハイフン、アンダースコア"
+								class="w-full rounded-lg border border-outline-variant bg-surface-container px-3 py-2.5 text-sm text-on-surface outline-none placeholder:text-on-surface-variant/40 focus:border-primary"
+							/></label
+						>
 						<p class="text-xs text-on-surface-variant/60">
 							identifier は作成後に編集できません。英数字、ハイフン(-)、アンダースコア(_)
 							のみ使用できます。

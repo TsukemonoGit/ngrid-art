@@ -16,9 +16,13 @@
 	} from '$lib/nostr/rx-nostr';
 	import { FETCHLIMIT } from '$lib/constracts/nostr';
 	import { kind10030 } from '$lib/stores/storages';
-	import { isLoading } from '$lib/stores/user';
+	import { getContext } from 'svelte';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
+
+	const mySetsLoading = getContext<{ value: boolean }>('mySetsLoading');
+
+	let isLoading = $state(false);
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
 
 	// 自分が登録している30030、していない30030を合体させた、created_atが新しいのが上にくるようにした配列。
@@ -50,12 +54,12 @@
 	const hasMoreLocal = $derived(displayCount + PAGE_SIZE < kind30030Events.length);
 
 	async function fetchMore() {
-		if (isLoading.value) return;
-		isLoading.value = true;
+		if (isLoading) return;
+		isLoading = true;
 		filter.until = subscriptionStartTimeOthers.value;
 		console.log(filter);
 		await fetchAllKind30030FromOthers([filter], FETCHLIMIT);
-		isLoading.value = false;
+		isLoading = false;
 	}
 
 	async function handleLoadMore() {
@@ -89,8 +93,10 @@
 <div class=" overflow-y-auto">
 	{#if kind30030Events.length == 0}
 		<!--TODO: loadingdesign-->
-		{#if isLoading.value}
+		{#if mySetsLoading.value}
 			loading...
+		{:else if isLoading}
+			loading......
 		{:else}
 			nodata
 		{/if}
@@ -106,10 +112,10 @@
 		<div class="flex justify-center py-4">
 			<button
 				onclick={handleLoadMore}
-				disabled={isLoading.value}
+				disabled={isLoading}
 				class="rounded bg-surface-container px-4 py-2 text-on-surface disabled:opacity-50"
 			>
-				{#if isLoading.value}
+				{#if isLoading}
 					読み込み中...
 				{:else}
 					もっと読む

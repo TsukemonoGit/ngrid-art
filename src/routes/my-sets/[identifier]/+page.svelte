@@ -34,6 +34,7 @@
 				emojis = setEvent?.emojiTags.map((tag) => {
 					return { shortcode: tag[1], url: tag[2] };
 				});
+				editingTitle = setEvent.label;
 			});
 		}
 	});

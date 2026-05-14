@@ -16,11 +16,8 @@
 	} from '$lib/nostr/rx-nostr';
 	import { FETCHLIMIT } from '$lib/constracts/nostr';
 	import { kind10030 } from '$lib/stores/storages';
-	import { getContext } from 'svelte';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
-
-	const mySetsLoading = getContext<{ value: boolean }>('mySetsLoading');
 
 	let isLoading = $state(false);
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
@@ -93,9 +90,8 @@
 <div class=" overflow-y-auto">
 	{#if kind30030Events.length == 0}
 		<!--TODO: loadingdesign-->
-		{#if mySetsLoading.value}
-			loading...
-		{:else if isLoading}
+
+		{#if isLoading}
 			loading......
 		{:else}
 			nodata

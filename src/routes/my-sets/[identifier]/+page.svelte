@@ -11,6 +11,9 @@
 	import { mySets } from '$lib/stores/palette';
 	import { loginUser } from '$lib/stores/user';
 	import { untrack } from 'svelte';
+	import { getContext } from 'svelte';
+
+	const mySetsLoading = getContext<{ value: boolean }>('mySetsLoading');
 
 	// --- State ---
 
@@ -498,6 +501,8 @@
 				</button>
 			</div>
 		</div>
+	{:else if mySetsLoading}
+		loading...
 	{:else}
 		<div class="flex flex-1 flex-col items-center justify-center gap-4">
 			<p class="text-lg text-on-surface-variant">{errorMessage ?? 'セットが見つかりません'}</p>

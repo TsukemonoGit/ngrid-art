@@ -2,7 +2,7 @@
 	import {
 		kind30030Stock,
 		latestEmojisFromOthers,
-		subscriptionStartTime
+		subscriptionStartTimeOthers
 	} from '$lib/stores/palette';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Filter } from 'nostr-typedef';
@@ -18,6 +18,8 @@
 	import { kind10030 } from '$lib/stores/storages';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
+
+	let isLoading = $state(false);
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
 
 	// 自分が登録している30030、していない30030を合体させた、created_atが新しいのが上にくるようにした配列。
@@ -42,7 +44,6 @@
 
 	const PAGE_SIZE = 50;
 	let displayCount = $state(PAGE_SIZE);
-	let isLoading = $state(false);
 
 	// 表示するイベント（手元データの先頭 displayCount 件だけ）
 	const visibleEvents = $derived(kind30030Events.slice(0, displayCount));
@@ -52,7 +53,7 @@
 	async function fetchMore() {
 		if (isLoading) return;
 		isLoading = true;
-		filter.until = subscriptionStartTime.value;
+		filter.until = subscriptionStartTimeOthers.value;
 		console.log(filter);
 		await fetchAllKind30030FromOthers([filter], FETCHLIMIT);
 		isLoading = false;
@@ -89,10 +90,11 @@
 <div class=" overflow-y-auto">
 	{#if kind30030Events.length == 0}
 		<!--TODO: loadingdesign-->
+
 		{#if isLoading}
-			loading...
+			loading......
 		{:else}
-			now loading
+			nodata
 		{/if}
 	{:else}
 		<!--表示させるデータは kind30030Events。なかみの表示はあとでつくる。-->

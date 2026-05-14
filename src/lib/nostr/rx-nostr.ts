@@ -9,8 +9,13 @@ import {
 } from 'rx-nostr';
 import { verifier } from '@rx-nostr/crypto';
 import { initRelays } from '$lib/constracts/nostr';
-import type { EventParameters, Filter, Event as NostrEvent } from 'nostr-typedef';
-import type { EmojiSetEvent } from '$lib/types';
+import type {
+	EventParameters,
+	Filter,
+	Event as NostrEvent,
+	ReplaceableEventSpecifier
+} from 'nostr-typedef';
+import type { EmojiSetEvent, EmojiSetEventMap } from '$lib/types';
 
 import { Subject } from 'rxjs';
 
@@ -18,7 +23,10 @@ import {
 	kind0Cache,
 	kind30030Stock,
 	latestEmojisFromOthers,
-	subscriptionStartTime
+	mySets,
+	subscriptionStartTime,
+	subscriptionStartTimeMy,
+	subscriptionStartTimeOthers
 } from '$lib/stores/palette';
 import { loginUser } from '$lib/stores/user';
 import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from '../utils/utils';
@@ -36,6 +44,18 @@ function toEmojiSetEvent(event: NostrEvent): EmojiSetEvent {
 		dtag: event.tags.find((t) => t[0] === 'd')?.[1] ?? '',
 		label: label
 	};
+}
+
+/** atagごとにMapの値を最新にする（created_atが新しい方のみ保存） */
+function updateIfNewer(
+	map: EmojiSetEventMap,
+	atag: ReplaceableEventSpecifier,
+	event: NostrEvent
+): void {
+	const existing = map.get(atag);
+	if (!existing || event.created_at > existing.event.created_at) {
+		map.set(atag, toEmojiSetEvent(event));
+	}
 }
 
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
@@ -88,21 +108,19 @@ rxNostr.use(freq).subscribe({
 			}
 			case 30030: {
 				const atag = eventToAtag(pk.event);
-				//自分のいれてる30030
 				const myTags = getCurrentKind10030ATags();
-				const emojiSetEvent = toEmojiSetEvent(pk.event);
 
+				// 必ずmySetsに保存（自分のデータなら）
+				if (pk.event.pubkey === loginUser.value) {
+					updateIfNewer(mySets.value, atag, pk.event);
+				}
+
+				// 自分が登録している30030
 				if (myTags.includes(atag)) {
-					const existing = kind30030Stock.value.get(atag);
-					if (!existing || pk.event.created_at > existing.event.created_at) {
-						kind30030Stock.value.set(atag, emojiSetEvent);
-					}
+					updateIfNewer(kind30030Stock.value, atag, pk.event);
 				} else {
-					//いれてない30030
-					const existing = latestEmojisFromOthers.value.get(atag);
-					if (!existing || pk.event.created_at > existing.event.created_at) {
-						latestEmojisFromOthers.value.set(atag, emojiSetEvent);
-					}
+					// いれてない30030（他人のデータ、または自分の未登録）
+					updateIfNewer(latestEmojisFromOthers.value, atag, pk.event);
 				}
 
 				break;
@@ -254,10 +272,7 @@ async function fetchKind30030ChunkIntoStock(filters: Filter[]): Promise<void> {
 					}
 
 					const atag = eventToAtag(packet.event);
-					const existing = kind30030Stock.value.get(atag);
-					if (!existing || packet.event.created_at > existing.event.created_at) {
-						kind30030Stock.value.set(atag, toEmojiSetEvent(packet.event));
-					}
+					updateIfNewer(kind30030Stock.value, atag, packet.event);
 				},
 				error: (err) => {
 					sub.unsubscribe();
@@ -293,8 +308,8 @@ export async function fetchAllKind30030FromOthers(filters: Filter[], limit: numb
 	console.log('fetchUniqEvents', events);
 	if (events.length == 0) return;
 
-	//storeの更新
-	subscriptionStartTime.value = events[events.length - 1].created_at;
+	//storeの更新（others用）
+	subscriptionStartTimeOthers.value = events[events.length - 1].created_at;
 
 	//atagごとに最新のものだけをのこす処理をして、latestEmojisFromOthersにせっとする
 	const myATags = getCurrentKind10030ATags();
@@ -302,10 +317,7 @@ export async function fetchAllKind30030FromOthers(filters: Filter[], limit: numb
 		const atag = eventToAtag(event);
 		// 自分が登録済みのものは除外
 		if (myATags.includes(atag)) continue;
-		const existing = latestEmojisFromOthers.value.get(atag);
-		if (!existing || event.created_at > existing.event.created_at) {
-			latestEmojisFromOthers.value.set(atag, toEmojiSetEvent(event));
-		}
+		updateIfNewer(latestEmojisFromOthers.value, atag, event);
 	}
 }
 
@@ -409,6 +421,121 @@ export async function removeKind30030FromMyKind10030(atag: string): Promise<void
 		kind: 10030,
 		content: kind10030.value?.content ?? '',
 		tags: toKind10030Tags(currentTags, nextATags)
+	});
+}
+
+// ============================================================
+// kind:30030 の取得・投稿・削除
+// ============================================================
+
+/**
+ * 指定した pubkey の kind:30030 をすべて取得する
+ * @param until 取得終了時刻（オプション）。指定するとその時刻より古いデータのみ取得
+ */
+export async function fetchAllKind30030FromPubkey(
+	pubkey: string,
+	until?: number
+): Promise<NostrEvent[]> {
+	return new Promise<NostrEvent[]>((resolve, reject) => {
+		const events: NostrEvent[] = [];
+		const flushes$ = new Subject<void>();
+		const rxReq = createRxBackwardReq();
+
+		const sub = rxNostr
+			.use(rxReq)
+			.pipe(uniq(flushes$))
+			.subscribe({
+				next: (packet) => {
+					events.push(packet.event);
+				},
+				error: (err) => {
+					sub.unsubscribe();
+					reject(err);
+				},
+				complete: () => {
+					sub.unsubscribe();
+					flushes$.next();
+					resolve(events.sort((a, b) => b.created_at - a.created_at));
+				}
+			});
+
+		const filter: Filter = { kinds: [30030], authors: [pubkey] };
+		if (until) filter.until = until;
+		rxReq.emit(filter);
+		rxReq.over();
+	});
+}
+
+/**
+ * ログインユーザーの kind:30030 を取得して mySets に保存する
+ * @returns フェッチしたイベントの配列（古い順）
+ */
+export async function fetchMyKind30030Sets(): Promise<NostrEvent[]> {
+	if (!loginUser.value) return [];
+
+	const pubhex = toPubhex(loginUser.value);
+	const events = await fetchAllKind30030FromPubkey(pubhex, subscriptionStartTimeMy.value);
+
+	// mySets に保存（atag ごとに最新のみ）
+	for (const event of events) {
+		const atag = eventToAtag(event);
+		updateIfNewer(mySets.value, atag, event);
+	}
+	console.log('updateIfNewer', mySets.value);
+	// 最新のイベントで subscriptionStartTimeMy を更新
+	if (events.length > 0) {
+		subscriptionStartTimeMy.value = events[events.length - 1].created_at;
+	}
+
+	return events;
+}
+
+/**
+ * kind:30030 を新規投稿する
+ * @returns 投稿されたイベント
+ */
+export async function publishKind30030(params: {
+	title: string;
+	dtag: string;
+	emojiTags: [string, string, string][];
+}): Promise<void> {
+	if (!loginUser.value) {
+		throw Error('No login user');
+	}
+
+	const tags: string[][] = [
+		['d', params.dtag],
+		['title', params.title]
+	];
+
+	for (const [, shortcode, url] of params.emojiTags) {
+		tags.push(['emoji', shortcode, url]);
+	}
+
+	await publishEvent({
+		kind: 30030,
+		content: '',
+		tags
+	});
+
+	return;
+}
+
+/**
+ * kind:5 でイベントを削除する（a タグ + e タグ両方含める）
+ */
+export async function deleteKind30030(eventId: string, atag: string): Promise<void> {
+	if (!loginUser.value) {
+		throw Error('No login user');
+	}
+
+	await publishEvent({
+		kind: 5,
+		content: '',
+		tags: [
+			['a', atag],
+			['e', eventId]
+		]
 	});
 }
 

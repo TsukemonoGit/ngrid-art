@@ -1,7 +1,7 @@
 // hypertsukurukun/wrangler.jsonc
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "nostr-grid-art",
+	"name": "ngrid-art",
 	"compatibility_date": "2026-05-10",
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"assets": {

@@ -26,7 +26,7 @@
 
 	// Emoji list
 	//emojis!.push(), emojis!.splice(), emojis![i].shortcode = ... のように直接変更するため、effectでsetEventを購読
-	let emojis: { shortcode: string; url: string }[] | undefined = $state(undefined);
+	let emojis: { shortcode: string; url: string }[] = $state([]);
 
 	$effect(() => {
 		if (setEvent) {

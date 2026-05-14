@@ -28,7 +28,7 @@
 	let isEditingTitle = $state(false);
 
 	// Emoji list
-	//emojis!.push(), emojis!.splice(), emojis![i].shortcode = ... のように直接変更するため、effectでsetEventを購読
+	//emojis.push(), emojis.splice(), emojis[i].shortcode = ... のように直接変更するため、effectでsetEventを購読
 	let emojis: { shortcode: string; url: string }[] = $state([]);
 
 	$effect(() => {
@@ -95,7 +95,7 @@
 			errorMessage = 'shortcode は英数字とアンダースコアで、文字から始める必要があります';
 			return;
 		}
-		if (emojis!.some((e) => e.shortcode === newEmojiShortcode.trim())) {
+		if (emojis.some((e) => e.shortcode === newEmojiShortcode.trim())) {
 			errorMessage = 'この shortcode は既に使用されています';
 			return;
 		}
@@ -140,7 +140,7 @@
 			// Deduplicate
 			let finalShortcode = shortcode;
 			let counter = 1;
-			while (emojis!.some((e) => e.shortcode === finalShortcode)) {
+			while (emojis.some((e) => e.shortcode === finalShortcode)) {
 				finalShortcode = `${shortcode}_${counter}`;
 				counter++;
 			}
@@ -158,7 +158,7 @@
 
 	// --- Add emoji to list ---
 	function addEmoji(shortcode: string, url: string): void {
-		emojis!.push({ shortcode, url });
+		emojis.push({ shortcode, url });
 		newEmojiShortcode = '';
 		newEmojiUrl = '';
 		newEmojiPreview = null;
@@ -168,9 +168,9 @@
 	// --- Edit emoji ---
 	function startEditEmoji(idx: number): void {
 		editingEmojiIdx = idx;
-		editShortcode = emojis![idx].shortcode;
-		editUrl = emojis![idx].url;
-		editPreview = emojis![idx].url;
+		editShortcode = emojis[idx].shortcode;
+		editUrl = emojis[idx].url;
+		editPreview = emojis[idx].url;
 	}
 	function cancelEditEmoji(): void {
 		editingEmojiIdx = null;
@@ -184,13 +184,13 @@
 			errorMessage = 'shortcode と URL を入力してください';
 			return;
 		}
-		const otherShortcodes = emojis!.filter((_, i) => i !== editingEmojiIdx).map((e) => e.shortcode);
+		const otherShortcodes = emojis.filter((_, i) => i !== editingEmojiIdx).map((e) => e.shortcode);
 		if (otherShortcodes.includes(editShortcode.trim())) {
 			errorMessage = 'この shortcode は既に使用されています';
 			return;
 		}
-		emojis![editingEmojiIdx].shortcode = editShortcode.trim();
-		emojis![editingEmojiIdx].url = editUrl.trim();
+		emojis[editingEmojiIdx].shortcode = editShortcode.trim();
+		emojis[editingEmojiIdx].url = editUrl.trim();
 		editingEmojiIdx = null;
 		errorMessage = null;
 	}
@@ -202,7 +202,7 @@
 	}
 	function confirmDeleteEmoji(): void {
 		if (deleteEmojiIdx === null) return;
-		emojis!.splice(deleteEmojiIdx, 1);
+		emojis.splice(deleteEmojiIdx, 1);
 		deleteEmojiIdx = null;
 		deleteOpen = false;
 	}
@@ -210,18 +210,18 @@
 	// --- Reorder ---
 	function moveEmojiUp(idx: number): void {
 		if (idx <= 0) return;
-		[emojis![idx - 1], emojis![idx]] = [emojis![idx], emojis![idx - 1]];
+		[emojis[idx - 1], emojis[idx]] = [emojis[idx], emojis[idx - 1]];
 	}
 	function moveEmojiDown(idx: number): void {
-		if (idx >= emojis!.length - 1) return;
-		[emojis![idx + 1], emojis![idx]] = [emojis![idx], emojis![idx + 1]];
+		if (idx >= emojis.length - 1) return;
+		[emojis[idx + 1], emojis[idx]] = [emojis[idx], emojis[idx + 1]];
 	}
 
 	// --- Save and publish ---
 	async function handleSave(): Promise<void> {
 		if (!setEvent) return;
 
-		const shortcodes = emojis!.map((e) => e.shortcode);
+		const shortcodes = emojis.map((e) => e.shortcode);
 		if (new Set(shortcodes).size !== shortcodes.length) {
 			errorMessage = 'duplicate shortcode があります';
 			return;
@@ -231,7 +231,7 @@
 		errorMessage = null;
 
 		try {
-			const emojiTags: [string, string, string][] = emojis!.map((e) => [
+			const emojiTags: [string, string, string][] = emojis.map((e) => [
 				'emoji',
 				e.shortcode,
 				e.url
@@ -405,9 +405,9 @@
 			<!-- Emoji List -->
 			<div class="rounded-xl border border-outline-variant bg-surface-container p-4">
 				<h3 class="mb-3 text-sm font-semibold text-on-surface-variant">
-					絵文字リスト ({emojis!.length})
+					絵文字リスト ({emojis.length})
 				</h3>
-				{#if emojis!.length === 0}
+				{#if emojis.length === 0}
 					<p class="py-4 text-center text-sm text-on-surface-variant/60">
 						絵文字が登録されていません
 					</p>
@@ -425,7 +425,7 @@
 									>
 									<button
 										onclick={() => moveEmojiDown(idx)}
-										disabled={idx === emojis!.length - 1}
+										disabled={idx === emojis.length - 1}
 										class="rounded p-0.5 text-xs text-on-surface-variant hover:bg-surface-container disabled:opacity-30"
 										>▼</button
 									>
@@ -533,7 +533,7 @@
 				</div>
 				{#if deleteEmojiIdx !== null}
 					<p class="text-sm text-on-surface">
-						<strong>:{emojis![deleteEmojiIdx]?.shortcode}:</strong> を削除してもよろしいですか？
+						<strong>:{emojis[deleteEmojiIdx]?.shortcode}:</strong> を削除してもよろしいですか？
 					</p>
 				{/if}
 				<div class="flex justify-end gap-2 pt-4">

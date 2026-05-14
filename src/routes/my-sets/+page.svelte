@@ -257,12 +257,10 @@
 
 					<!-- Buttons -->
 					<div class="flex justify-end gap-2 pt-2">
-						<Dialog.Close>
-							<button
-								class="rounded-lg px-4 py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container-high"
-							>
-								キャンセル
-							</button>
+						<Dialog.Close
+							class="rounded-lg px-4 py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container-high"
+						>
+							キャンセル
 						</Dialog.Close>
 						<button
 							onclick={handleCreate}

@@ -10,13 +10,13 @@
 	import type { EmojiSetEvent } from '$lib/types';
 	import { mySets } from '$lib/stores/palette';
 	import { loginUser } from '$lib/stores/user';
+	import { untrack } from 'svelte';
 
 	// --- State ---
 
 	let setEvent: EmojiSetEvent | undefined = $derived(
 		mySets.value.get(`30030:${loginUser.value}:${page.params.identifier}`)
 	);
-	$inspect(setEvent);
 	let isSaving = $state(false);
 	let errorMessage = $state<string | null>(null);
 
@@ -25,13 +25,18 @@
 	let isEditingTitle = $state(false);
 
 	// Emoji list
-	let emojis: { shortcode: string; url: string }[] | undefined = $derived(
-		setEvent?.emojiTags.map((tag) => {
-			return { shortcode: tag[1], url: tag[2] };
-		})
-	);
-	$inspect(emojis);
+	//emojis!.push(), emojis!.splice(), emojis![i].shortcode = ... のように直接変更するため、effectでsetEventを購読
+	let emojis: { shortcode: string; url: string }[] | undefined = $state(undefined);
 
+	$effect(() => {
+		if (setEvent) {
+			untrack(() => {
+				emojis = setEvent?.emojiTags.map((tag) => {
+					return { shortcode: tag[1], url: tag[2] };
+				});
+			});
+		}
+	});
 	// Add emoji via URL
 	let newEmojiShortcode = $state('');
 	let newEmojiUrl = $state('');

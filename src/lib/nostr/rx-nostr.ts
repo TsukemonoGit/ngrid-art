@@ -65,7 +65,7 @@ rxNostr.setDefaultRelays(initRelays);
 const getCheckUrls = (): string[] => {
 	if (!kind10002.value) return [];
 	return (kind10002.value.tags as string[][])
-		.filter((t) => t[0] === 'url' && typeof t[1] === 'string')
+		.filter((t) => t[0] === 'r' && typeof t[1] === 'string')
 		.map((t) => normalizeRelayUrl(t[1]));
 };
 

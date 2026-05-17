@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
 	import Grid from '$lib/components/features/Grid.svelte';
 	import Palette from '$lib/components/features/Palette.svelte';
-	import { isMobile, loginUser } from '$lib/stores/user';
+	import { isMobile } from '$lib/stores/user';
 
 	import {
 		ChevronDown,
@@ -14,12 +13,6 @@
 
 	let paletteOpen = $state(false);
 	let sidebarWide = $state(false);
-
-	afterNavigate(() => {
-		if (!loginUser.value) {
-			window.nostr?.getPublicKey();
-		}
-	});
 </script>
 
 {#if isMobile.value}

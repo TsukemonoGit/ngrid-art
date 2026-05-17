@@ -52,14 +52,11 @@
 
 	$effect(() => {
 		if (loginUser.value) {
-			updateData();
+			untrack(async () => {
+				await setDefaultRelaysfrom10002(loginUser.value);
+			});
 		}
 	});
-
-	async function updateData() {
-		//まず10002を取得してデフォリレーにせっと
-		await setDefaultRelaysfrom10002(loginUser.value);
-	}
 
 	$effect(() => {
 		if (connectReady.value) {

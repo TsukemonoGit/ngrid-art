@@ -1,3 +1,9 @@
+# nostr-grid-art
+
+|                        |                        |
+| ---------------------- | ---------------------- |
+| ![img1](/img/img1.png) | ![img2](/img/img2.png) |
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).

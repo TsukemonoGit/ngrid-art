@@ -3,7 +3,13 @@
 	import Palette from '$lib/components/features/Palette.svelte';
 	import { isMobile } from '$lib/stores/user';
 
-	import { ChevronDown, ChevronLeft, ChevronRight, Palette as PaletteIcon, User } from '@lucide/svelte';
+	import {
+		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		Palette as PaletteIcon,
+		User
+	} from '@lucide/svelte';
 
 	let paletteOpen = $state(false);
 	let sidebarWide = $state(false);
@@ -75,7 +81,7 @@
 			<Palette />
 			<!-- 幅切り替えボタン：右ボーダー上に配置 -->
 			<button
-				class="absolute top-2 -right-3.5 z-10 flex h-8 w-8  items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container-highest "
+				class="absolute top-2 -right-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-on-surface-variant shadow-sm transition-colors hover:bg-surface-container-highest"
 				onclick={() => (sidebarWide = !sidebarWide)}
 				aria-label={sidebarWide ? 'サイドバーを狭くする' : 'サイドバーを広くする'}
 			>

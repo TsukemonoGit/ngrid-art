@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { fetchMyKind30030Sets, waitForRelayReady } from '$lib/nostr/rx-nostr';
-	import { loginUser } from '$lib/stores/user';
-	import { onMount } from 'svelte';
+	import { fetchMyKind30030Sets } from '$lib/nostr/rx-nostr';
+	import { connectReady, loginUser } from '$lib/stores/user';
+	import { onMount, untrack } from 'svelte';
 	import { setContext } from 'svelte';
 
 	const mySetsLoading = $state({ value: false });
@@ -28,12 +28,16 @@
 				console.log(error);
 			}
 		}
+	});
 
-		await waitForRelayReady();
-
-		console.log('fetchMySets');
-		await fetchMySets();
-		console.log('fetchMySetsend');
+	$effect(() => {
+		if (connectReady.value) {
+			untrack(async () => {
+				console.log('fetchMySets');
+				await fetchMySets();
+				console.log('fetchMySetsend');
+			});
+		}
 	});
 </script>
 

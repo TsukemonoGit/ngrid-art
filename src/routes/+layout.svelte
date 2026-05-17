@@ -3,12 +3,11 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { waitNostr } from 'nip07-awaiter';
 	import { onMount, untrack } from 'svelte';
-	import { isMobile, loginUser } from '$lib/stores/user';
+	import { connectReady, isMobile, loginUser } from '$lib/stores/user';
 	import {
 		fetchLatestKind10030,
 		setDefaultRelaysfrom10002,
-		setForwardFilters,
-		waitForRelayReady
+		setForwardFilters
 	} from '$lib/nostr/rx-nostr';
 	import { kind30030Stock, subscriptionStartTime } from '$lib/stores/palette';
 	import { syncPaletteFromKind10030 } from '$lib/palette/syncPaletteFromKind10030';
@@ -60,17 +59,23 @@
 	async function updateData() {
 		//まず10002を取得してデフォリレーにせっと
 		await setDefaultRelaysfrom10002(loginUser.value);
-		await waitForRelayReady();
-		//未来の購読設定
-		setForwardFilters([
-			{ kinds: [10030], authors: [loginUser.value], since: subscriptionStartTime.value },
-			{ kinds: [30030], since: subscriptionStartTime.value }
-		]);
-
-		//現状での最新の10030を取得
-		await fetchLatestKind10030(loginUser.value);
-		console.log('update');
 	}
+
+	$effect(() => {
+		if (connectReady.value) {
+			untrack(async () => {
+				//未来の購読設定
+				setForwardFilters([
+					{ kinds: [10030], authors: [loginUser.value], since: subscriptionStartTime.value },
+					{ kinds: [30030], since: subscriptionStartTime.value }
+				]);
+
+				//現状での最新の10030を取得
+				await fetchLatestKind10030(loginUser.value);
+				console.log('update');
+			});
+		}
+	});
 
 	$effect(() => {
 		const k = kind10030.value;

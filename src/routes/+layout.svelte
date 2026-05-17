@@ -29,6 +29,7 @@
 		if (!pub || pub === loginUser.value) {
 			return;
 		}
+
 		loginUser.value = pub;
 		console.log('Nostr Login認証イベントリスナー', pub);
 	};
@@ -38,8 +39,9 @@
 
 		// Nostr Login初期化（1度だけ実行）
 		if (!nostrLoginInitialized) {
-			const nostrLogin = await import('@konemono/nostr-login');
 			document.addEventListener('nlAuth', handleNlAuth);
+			const nostrLogin = await import('@konemono/nostr-login');
+
 			await waitNostr(1000);
 			try {
 				await nostrLogin.init({});

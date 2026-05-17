@@ -99,8 +99,8 @@
 	$effect(() => {
 		if (connectReady.value) {
 			untrack(async () => {
+				useGlobalRelays = false;
 				if (latestEmojisFromOthers.value.size === 0) {
-					useGlobalRelays = false;
 					await fetchMore();
 				}
 			});

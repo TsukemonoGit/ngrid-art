@@ -59,7 +59,7 @@ function updateIfNewer(
 	}
 }
 
-const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
+const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000, connectionStrategy: 'aggressive' }); //defoリレーきりかえても使うまで接続開始されないからaggressiveにする
 rxNostr.setDefaultRelays(initRelays);
 
 const getCheckUrls = (): string[] => {
@@ -69,7 +69,7 @@ const getCheckUrls = (): string[] => {
 		.map((t) => normalizeRelayUrl(t[1]));
 };
 
-const checkRelayReady = (ratio = 0.5): boolean => {
+export const checkRelayReady = (ratio = 0.5): boolean => {
 	const urls = getCheckUrls();
 	if (urls.length === 0) return false;
 
@@ -85,10 +85,11 @@ const checkRelayReady = (ratio = 0.5): boolean => {
 	return connectedCount / urls.length >= ratio;
 };
 
-const connectObs = rxNostr.createConnectionStateObservable().subscribe(() => {
-	//console.log(`${packet.from} の接続状況が ${packet.state} に変化しました。`);
+const connectObs = rxNostr.createConnectionStateObservable().subscribe((packet) => {
+	console.log(`${packet.from} の接続状況が ${packet.state} に変化しました。`);
 	if (!connectReady.value && checkRelayReady()) {
 		connectReady.value = true;
+
 		connectObs.unsubscribe();
 	}
 });

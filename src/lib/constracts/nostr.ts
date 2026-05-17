@@ -16,3 +16,5 @@ export const initRelays: string[] = [
 ];
 
 export const FETCHLIMIT = 200;
+
+export const GLOBAL_RELAYS = ['wss://nos.lol', 'wss://x.kojira.io', 'wss://relay.damus.io'];

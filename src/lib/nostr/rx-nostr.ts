@@ -28,10 +28,11 @@ import {
 	subscriptionStartTimeMy,
 	subscriptionStartTimeOthers
 } from '$lib/stores/palette';
-import { loginUser } from '$lib/stores/user';
+import { connectReady, loginUser } from '$lib/stores/user';
 import { eventToAtag, isReplaceableEventSpecifier, toPubhex } from '../utils/utils';
 import { kind10030, kind10002 } from '$lib/stores/storages';
 import { snapshot } from './rx-nostr.svelte';
+import { normalizeRelayUrl } from './normalize-url';
 
 function toEmojiSetEvent(event: NostrEvent): EmojiSetEvent {
 	const label =
@@ -61,36 +62,36 @@ function updateIfNewer(
 const rxNostr = createRxNostr({ verifier, eoseTimeout: 8000 });
 rxNostr.setDefaultRelays(initRelays);
 
-/* rxNostr.createConnectionStateObservable().subscribe((packet) => {
-	console.log(`${packet.from} の接続状況が ${packet.state} に変化しました。`);
-});
- */
-/**
- * 指定した割合以上のリレーが "connected" になるまで待つ Promise を返す。
- * 既に条件を満たしていれば即 resolve する。
- * @param ratio 0〜1 の割合（デフォルト 0.5 = 半数以上）
- */
-export function waitForRelayReady(ratio = 0.5): Promise<void> {
-	const isReady = () => {
-		const states = Object.values(rxNostr.getAllRelayStatus());
-		if (states.length === 0) return false;
-		const connectedCount = states.filter((s) => s.connection === 'connected').length;
-		return connectedCount / states.length >= ratio;
-	};
+const getCheckUrls = (): string[] => {
+	if (!kind10002.value) return [];
+	return (kind10002.value.tags as string[][])
+		.filter((t) => t[0] === 'url' && typeof t[1] === 'string')
+		.map((t) => normalizeRelayUrl(t[1]));
+};
 
-	if (isReady()) {
-		return Promise.resolve();
+const checkRelayReady = (ratio = 0.5): boolean => {
+	const urls = getCheckUrls();
+	if (urls.length === 0) return false;
+
+	const states = rxNostr.getAllRelayStatus();
+	let connectedCount = 0;
+
+	for (const url of urls) {
+		if (states[url]?.connection === 'connected') {
+			connectedCount++;
+		}
 	}
 
-	return new Promise<void>((resolve) => {
-		const sub = rxNostr.createConnectionStateObservable().subscribe(() => {
-			if (isReady()) {
-				sub.unsubscribe();
-				resolve();
-			}
-		});
-	});
-}
+	return connectedCount / urls.length >= ratio;
+};
+
+const connectObs = rxNostr.createConnectionStateObservable().subscribe(() => {
+	//console.log(`${packet.from} の接続状況が ${packet.state} に変化しました。`);
+	if (!connectReady.value && checkRelayReady()) {
+		connectReady.value = true;
+		connectObs.unsubscribe();
+	}
+});
 
 const freq = createRxForwardReq();
 rxNostr.use(freq).subscribe({
@@ -299,12 +300,16 @@ export async function fetchMissingKind30030IntoStock(filters: Filter[], chunkSiz
 	await Promise.all(chunks.map((chunk) => fetchKind30030ChunkIntoStock(chunk)));
 }
 
-export async function fetchAllKind30030FromOthers(filters: Filter[], limit: number) {
+export async function fetchAllKind30030FromOthers(
+	filters: Filter[],
+	limit: number,
+	relays?: string[]
+) {
 	if (filters.length === 0) {
 		return;
 	}
 	console.log('fetchAllKind30030FromOthers', filters, limit);
-	const events = await fetchUniqEvents(filters, limit);
+	const events = await fetchUniqEvents(filters, limit, relays);
 	console.log('fetchUniqEvents', events);
 	if (events.length == 0) return;
 
@@ -322,7 +327,11 @@ export async function fetchAllKind30030FromOthers(filters: Filter[], limit: numb
 }
 
 //latestとかの処理をしない。uniqなもの全部かえす
-function fetchUniqEvents(filters: Filter[], limit?: number): Promise<NostrEvent[]> {
+function fetchUniqEvents(
+	filters: Filter[],
+	limit?: number,
+	relays?: string[]
+): Promise<NostrEvent[]> {
 	const events: NostrEvent[] = [];
 
 	return new Promise<NostrEvent[]>((resolve, reject) => {
@@ -330,7 +339,7 @@ function fetchUniqEvents(filters: Filter[], limit?: number): Promise<NostrEvent[
 		const rxReq = createRxBackwardReq();
 
 		const sub = rxNostr
-			.use(rxReq)
+			.use(rxReq, relays ? { relays } : undefined)
 			.pipe(uniq(flushes$))
 			.subscribe({
 				next: (packet) => {

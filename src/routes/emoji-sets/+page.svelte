@@ -9,17 +9,15 @@
 	import type { EmojiSetEvent } from '$lib/types';
 	import EmojiSetCard from '$lib/components/features/EmojiSetCard.svelte';
 	import { onMount, untrack } from 'svelte';
-	import {
-		fetchAllKind30030FromOthers,
-		fetchKind0ForPubkeys,
-		waitForRelayReady
-	} from '$lib/nostr/rx-nostr';
-	import { FETCHLIMIT } from '$lib/constracts/nostr';
+	import { fetchAllKind30030FromOthers, fetchKind0ForPubkeys } from '$lib/nostr/rx-nostr';
+	import { FETCHLIMIT, GLOBAL_RELAYS } from '$lib/constracts/nostr';
 	import { kind10030 } from '$lib/stores/storages';
+	import { connectReady, loginUser } from '$lib/stores/user';
 
 	type ViewEvent = { emojiSetEvent: EmojiSetEvent; registered: boolean };
 
 	let isLoading = $state(false);
+	let useGlobalRelays = $state(false);
 	//このページにきたら、表示させるデータが十分にあるならそれを表示。たりなければ、subscriptionStartTime未満200件分くらい30030を取得して、画面構成する。
 
 	// 自分が登録している30030、していない30030を合体させた、created_atが新しいのが上にくるようにした配列。
@@ -50,12 +48,12 @@
 	// まだ手元に表示しきれていないものがあるか
 	const hasMoreLocal = $derived(displayCount + PAGE_SIZE < kind30030Events.length);
 
-	async function fetchMore() {
+	async function fetchMore(relays?: string[]) {
 		if (isLoading) return;
 		isLoading = true;
 		filter.until = subscriptionStartTimeOthers.value;
 		console.log(filter);
-		await fetchAllKind30030FromOthers([filter], FETCHLIMIT);
+		await fetchAllKind30030FromOthers([filter], FETCHLIMIT, relays);
 		isLoading = false;
 	}
 
@@ -65,19 +63,49 @@
 			displayCount += PAGE_SIZE;
 		} else {
 			// 手元を出し切ったらNostrから追加取得
-			await fetchMore();
+			if (useGlobalRelays) {
+				await fetchMore(GLOBAL_RELAYS);
+			} else {
+				await fetchMore();
+			}
 			displayCount += PAGE_SIZE;
 		}
 	}
 
 	onMount(async () => {
 		console.log('onMount');
-		await waitForRelayReady();
 		if (latestEmojisFromOthers.value.size === 0) {
-			await fetchMore();
+			//このページは、未ログインでもみんなの絵文字が表示されるようにしたい。
+			//が、現状のコードでは、ログインユーザーの情報をもとにデフォルトリレーを設定して、
+			//それを利用してフェッチしているため、未ログインでどうするかをかんがえる必要がある。
+			//1. まずログインが完了しているかをちぇっく
+
+			if (!loginUser.value) {
+				//2. してなかったらget pubkeyしてみる
+				try {
+					await window.nostr?.getPublicKey();
+				} catch (error) {
+					console.log(error);
+				}
+			}
+			//3. それもきゃんせるされたら、グローバル用のリレーをもとに、絵文字リストをフェッチする。
+
+			if (!loginUser.value) {
+				useGlobalRelays = true;
+				await fetchMore(GLOBAL_RELAYS);
+			}
 		}
 	});
-
+	$effect(() => {
+		if (connectReady.value) {
+			untrack(async () => {
+				if (latestEmojisFromOthers.value.size === 0) {
+					useGlobalRelays = false;
+					await fetchMore();
+				}
+			});
+		}
+	});
 	// kind30030Events が増えるたびに未取得pubkeyだけfetch
 	$effect(() => {
 		const pubkeys = kind30030Events.map((v) => v.emojiSetEvent.event.pubkey);

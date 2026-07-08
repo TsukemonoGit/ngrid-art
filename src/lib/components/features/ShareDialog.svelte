@@ -78,8 +78,16 @@
 			published = false;
 		}, 2000);
 	}
+
+	let nostrShare = $state();
 </script>
 
+<nostr-share
+	bind:this={nostrShare}
+	data-text={content}
+	data-tags={JSON.stringify(tags)}
+	data-type="default"
+/>
 <Dialog.Root bind:open>
 	<Dialog.Portal>
 		<Dialog.Overlay
@@ -145,18 +153,22 @@
 					{/if}
 				</button>
 
-				<!-- nostr-share-component（ログイン必須） -->
 				<button
-					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-40"
-					disabled={!loginUser.value}
-					title={loginUser.value ? undefined : 'ログインが必要です'}
+					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
+					onclick={() => {
+						open = false;
+						nostrShare?.shadowRoot?.querySelector('button')?.click();
+					}}
 				>
-					<ExternalLink size={18} />nostr-share-component
-					{#if !loginUser.value}
-						<span class="ml-auto text-xs text-on-surface-variant">要ログイン</span>
-					{/if}
+					<ExternalLink size={18} />nostr-share
 				</button>
 			</div>
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
+
+<style>
+	nostr-share::part(button) {
+		display: none;
+	}
+</style>

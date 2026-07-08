@@ -156,16 +156,10 @@
 				<button
 					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
 					onclick={() => {
-						open = false;
-				<button
-					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
-					onclick={() => {
 						const btn = nostrShare?.shadowRoot?.querySelector('button');
 						if (!btn) return;
 						open = false;
 						btn.click();
-					}}
-				>
 					}}
 				>
 					<ExternalLink size={18} />nostr-share

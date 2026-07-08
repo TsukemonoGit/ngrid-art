@@ -59,8 +59,19 @@
 		}, 2000);
 	}
 
-	let nostrShare: (HTMLUnknownElement & { openDialog(): void; closeDialog(): void }) | undefined =
-		$state();
+	interface NostrShareElement extends HTMLElement {
+		openDialog(): void;
+		closeDialog(): void;
+	}
+
+	function openShareDialog(): void {
+		if (nostrShare && typeof nostrShare.openDialog === 'function') {
+			nostrShare.openDialog();
+			open = false;
+		}
+	}
+
+	let nostrShare: NostrShareElement | null = $state(null);
 </script>
 
 <nostr-share
@@ -126,15 +137,10 @@
 					{/if}
 				</button>
 
-				<!-- nostr-share: openDialog() 直接呼び出しに修正 -->
+				<!-- nostr-share: openDialog() 直接呼び出し -->
 				<button
 					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
-					onclick={() => {
-						if (nostrShare) {
-							nostrShare.openDialog();
-							open = false;
-						}
-					}}
+					onclick={openShareDialog}
 				>
 					<ExternalLink size={18} />nostr-share
 				</button>

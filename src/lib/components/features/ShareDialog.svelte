@@ -33,21 +33,11 @@
 	async function postKind1(): Promise<void> {
 		const trimmedSize = getTrimmedSize(grid.value);
 		if (trimmedSize.cols === 0 || trimmedSize.rows === 0) {
-			// postStatus = "エラー: グリッドが空です";
-			// setTimeout(() => {
-			// postStatus = "";
-			//    }, 3000);
 			return;
 		}
 
-		// postStatus = "投稿中...";
-
 		try {
 			if (typeof window === 'undefined' || !(window as { nostr?: unknown }).nostr) {
-				//  postStatus = "エラー: nostr拡張がインストールされていません";
-				//   setTimeout(() => {
-				//     postStatus = "";
-				//  }, 5000);
 				return;
 			}
 
@@ -59,18 +49,8 @@
 			console.log(event);
 
 			await publishEvent(event);
-			/*   if (result) {
-        postStatus = "投稿完了（署名済み）";
-      } else {
-        postStatus = "投稿失敗";
-      } */
 		} catch (e: unknown) {
 			console.log(e);
-			/*   postStatus = `エラー: ${e instanceof Error ? e.message : "不明なエラー"}`;
-    } finally {
-      setTimeout(() => {
-        postStatus = "";
-      }, 5000); */
 		}
 		published = true;
 		setTimeout(() => {
@@ -79,7 +59,8 @@
 		}, 2000);
 	}
 
-	let nostrShare = $state();
+	let nostrShare: (HTMLUnknownElement & { openDialog(): void; closeDialog(): void }) | undefined =
+		$state();
 </script>
 
 <nostr-share
@@ -87,7 +68,7 @@
 	data-text={content}
 	data-tags={JSON.stringify(tags)}
 	data-type="default"
-/>
+></nostr-share>
 <Dialog.Root bind:open>
 	<Dialog.Portal>
 		<Dialog.Overlay
@@ -111,20 +92,11 @@
 				グリッドをテキストとしてコピーするか、Nostrに投稿します
 			</Dialog.Description>
 
-			<!-- プレビュー -->
-			<!--<div class="mb-4">
-				<p class="mb-1.5 text-xs font-medium text-on-surface-variant">プレビュー</p>
-				<pre
-					class="overflow-auto rounded-xl bg-surface-container p-3 text-sm leading-relaxed text-on-surface"
-					style="max-height: 12rem; white-space: pre-wrap; word-break: break-all;">{text}</pre>
-			</div>-->
-
 			<!-- アクションボタン群 -->
 			<div class="flex flex-col gap-2">
 				<!-- クリップボードにコピー -->
 				<button
-					class="flex items-center gap-2 rounded-xl
-                     px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-40"
+					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-40"
 					onclick={copyToClipboard}
 				>
 					{#if copied}
@@ -138,28 +110,30 @@
 
 				<!-- kind1 として投稿（ログイン必須） -->
 				<button
-					class="flex items-center gap-2 rounded-xl
-                     px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-40"
+					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-40"
 					disabled={!loginUser.value}
 					title={loginUser.value ? undefined : 'ログインが必要です'}
 					onclick={() => postKind1()}
-					>{#if published}
+				>
+					{#if published}
 						<Check size={18} />
 						投稿しました
 					{:else}
-						<Send size={18} /> kind1 として投稿{/if}
+						<Send size={18} /> kind1 として投稿
+					{/if}
 					{#if !loginUser.value}
 						<span class="ml-auto text-xs text-on-surface-variant">要ログイン</span>
 					{/if}
 				</button>
 
+				<!-- nostr-share: openDialog() 直接呼び出しに修正 -->
 				<button
 					class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
 					onclick={() => {
-						const btn = nostrShare?.shadowRoot?.querySelector('button');
-						if (!btn) return;
-						open = false;
-						btn.click();
+						if (nostrShare) {
+							nostrShare.openDialog();
+							open = false;
+						}
 					}}
 				>
 					<ExternalLink size={18} />nostr-share
